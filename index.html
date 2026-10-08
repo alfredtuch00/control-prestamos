@@ -76,6 +76,36 @@ tr.clickable{cursor:pointer}
 .b-porvencer{background:var(--warn-soft);color:var(--warn)}
 .b-vencido{background:var(--bad-soft);color:var(--bad)}
 .b-interes{background:#e6ebf2;color:#46566d}
+.b-liquidado{background:#dff3ef;color:#0f6b5c}
+.b-abono{background:#e9e8fb;color:#4338ca}
+tr.is-liquidado td,tr.is-abono td{color:#55606f}
+.chip.on.c-anticipado{background:#0f6b5c;border-color:#0f6b5c}
+.asis-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
+.asis-input{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.asis-input .field{min-width:200px}
+.asis-tbl td.persona{min-width:190px}
+.asis-tbl th,.asis-tbl td{padding-left:7px;padding-right:7px}
+.prev-loan table{font-size:12px}
+.prev-loan th,.prev-loan td{padding:5px 6px !important;white-space:nowrap}
+.prev-loan .badge{font-size:10.5px;padding:2px 6px}
+.asis-tbl td.persona b{white-space:normal}
+.asis-input input{font-size:18px;font-weight:700}
+.sug{list-style:none;margin:0;padding:0}
+.sug li{padding:9px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:#fff}
+.sug li b{color:var(--ink)}
+.sug li.liq{border-left:4px solid #0f6b5c}.sug li.abo{border-left:4px solid #4338ca}.sug li.info{border-left:4px solid #9aa3b2;color:var(--muted)}
+.keep li{border-left:4px solid #cfd6e1}
+.preview-banner{background:repeating-linear-gradient(135deg,#fff6db,#fff6db 12px,#fff1c9 12px,#fff1c9 24px);border:1px solid #f0d48a;color:#6b4e00;border-radius:10px;padding:10px 12px;font-weight:700;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.asis-cards{grid-template-columns:repeat(4,minmax(0,1fr))}
+.cmp{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.cmp .card .s b{color:var(--ink)}
+.prev-loan{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px;background:#fff}
+.prev-loan h4{margin:0 0 6px;font-size:14px}
+.chk{width:18px;height:18px;accent-color:var(--pri);cursor:pointer}
+tr.sel-liq td{background:#f1faf7}
+tr.sel-abo td{background:#f4f3fe}
+.warnbox{background:var(--bad-soft);color:var(--bad);border:1px solid #f3c3be;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:600;margin-top:8px}
+@media (max-width:1000px){.asis-grid{grid-template-columns:1fr}.asis-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.cmp{grid-template-columns:repeat(2,minmax(0,1fr))}}
 tr.is-interes td{color:#55606f}
 .ext{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:999px;background:#e6ebf2;color:#46566d;font-size:11px;font-weight:700;white-space:nowrap}
 .abono-menu{position:fixed;z-index:80;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(16,24,40,.18);padding:6px;min-width:240px;max-width:92vw}
@@ -172,6 +202,10 @@ input.paydate{padding:4px 6px;border:1px solid var(--line);border-radius:6px;fon
 .sync.ok{background:rgba(30,125,79,.35);border-color:rgba(120,220,170,.5)}
 .sync.busy{background:rgba(255,255,255,.12)}
 .sync.warn{background:rgba(168,100,0,.45);border-color:rgba(255,200,120,.55)}
+.autosw{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.28);border-radius:8px;padding:6px 10px;cursor:pointer;user-select:none}
+.autosw input{width:16px;height:16px;accent-color:#7fd1a8;margin:0;cursor:pointer}
+#btnSave{background:#c27a00;border-color:#c27a00;color:#fff}
+#btnSave[hidden]{display:none}
 .sync.err{background:rgba(180,35,24,.55);border-color:rgba(255,160,150,.6)}
 .connect{position:fixed;inset:0;z-index:70;background:rgba(31,35,40,.72);display:flex;align-items:center;justify-content:center;padding:16px}
 .connect[hidden]{display:none}
@@ -198,6 +232,8 @@ a.btn{color:inherit;text-decoration:none}
     <div class="top-actions">
       <button class="btn" id="btnExportJson" title="Descargar respaldo de todos los datos">⬇ Respaldo JSON</button>
       <button class="btn" id="btnImportJson" title="Cargar un respaldo JSON">⬆ Importar JSON</button>
+      <label class="autosw" title="Si está apagado, los cambios quedan en este dispositivo hasta que pulses Guardar"><input type="checkbox" id="autoSave" checked> Guardado automático</label>
+      <button class="btn pri" id="btnSave" type="button" hidden title="Subir los cambios a GitHub">💾 Guardar</button>
       <button class="btn" id="btnSync" title="Volver a cargar los datos desde GitHub">⟳ Sincronizar</button>
       <button class="btn" id="btnSettings" title="Conexión con GitHub">⚙ Ajustes</button>
       <input type="file" id="fileImport" accept="application/json,.json" hidden>
@@ -208,6 +244,7 @@ a.btn{color:inherit;text-decoration:none}
     <button data-tab="cuotas" class="active">Cuotas por mes</button>
     <button data-tab="resumen">Resumen mensual</button>
     <button data-tab="prestamos">Préstamos</button>
+    <button data-tab="asistente">✦ Asistente de abonos</button>
   </nav>
 </header>
 
@@ -227,6 +264,7 @@ a.btn{color:inherit;text-decoration:none}
           <button class="chip c-porvencer" data-e="porvencer">Por vencer</button>
           <button class="chip c-vencido" data-e="vencido">Vencido</button>
           <button class="chip c-interes" data-e="interes">Solo interés</button>
+          <button class="chip c-anticipado" data-e="anticipado">Liquidado / abono</button>
         </div>
         <div class="spacer"></div>
         <div class="quick">
@@ -275,6 +313,19 @@ a.btn{color:inherit;text-decoration:none}
   </section>
 
   <!-- PRESTAMOS -->
+  <section id="tab-asistente" hidden>
+    <div class="panel">
+      <h2>✦ Asistente de abonos</h2>
+      <p class="muted" style="margin:-4px 0 10px">Escribe cuánto dinero hay disponible y el asistente calcula qué préstamos conviene liquidar (pagar completos) para ahorrar la mayor cantidad de interés futuro. Si sobra dinero, sugiere un abono extra a capital. Nada se guarda hasta que pulses “Guardar”.</p>
+      <div class="asis-input">
+        <div class="field"><label for="aMonto">Monto disponible ($)</label><input id="aMonto" type="number" min="0" step="0.01" inputmode="decimal" placeholder="3000"></div>
+        <button class="btn pri" id="aCalc" type="button">Calcular sugerencia</button>
+        <button class="btn" id="aReset" type="button" title="Volver a la combinación óptima">↺ Sugerencia óptima</button>
+      </div>
+    </div>
+    <div id="aOut"></div>
+  </section>
+
   <section id="tab-prestamos" hidden>
     <div class="panel">
       <div class="loanhead">
@@ -345,6 +396,7 @@ a.btn{color:inherit;text-decoration:none}
     <header><h3 id="sTitle">Ajustes · GitHub</h3><button class="btn ghost" id="sClose" aria-label="Cerrar">✕</button></header>
     <div class="body">
       <dl class="kv" id="sInfo"></dl>
+      <label style="display:flex;gap:8px;align-items:flex-start;margin:0 0 12px;cursor:pointer"><input type="checkbox" id="sAuto" style="width:18px;height:18px;margin-top:2px"> <span><b>Guardado automático</b><br><span class="muted">Encendido: cada cambio se sube a GitHub al instante. Apagado: los cambios quedan en este dispositivo (“Cambios sin guardar”) hasta que pulses “💾 Guardar”.</span></span></label>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn" id="sSync" type="button">⟳ Sincronizar ahora</button>
         <a class="btn" id="sLink" target="_blank" rel="noopener">Ver data.json en GitHub ↗</a>
@@ -366,8 +418,9 @@ const GH_PATH   = "data.json";                // archivo de datos dentro del rep
 const GH_BRANCH = "main";
 const LS_KEY    = "controlPrestamos.cache.v2"; // copia local (offline) de los datos
 const LS_TOKEN  = "controlPrestamos.ghToken";  // token guardado solo en este dispositivo
+const LS_AUTO   = "controlPrestamos.autoSave"; // "0" = guardado automático apagado (por defecto encendido)
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-const ESTADO_LABEL = {pagado:"Pagado", interes:"Solo interés", porvencer:"Por vencer", vencido:"Vencido"};
+const ESTADO_LABEL = {pagado:"Pagado", interes:"Solo interés", liquidado:"Liquidado", abono:"Abono extra", porvencer:"Por vencer", vencido:"Vencido"};
 
 /* ---------- utilidades ---------- */
 const pad = n => String(n).padStart(2,"0");
@@ -397,8 +450,10 @@ function shortName(n){if(/[()]/.test(String(n||"")))return String(n).trim();cons
 function cuotaTotal(c){return r2(c.capital+c.interes);}
 /* Cuota pagada solo con interés: tipo="interes" (capital 0, saldo sin cambio; el capital aplazado pasa a la cuota siguiente). */
 const esSoloInteres = c => !!c.pagado && c.tipo==="interes";
-function estadoDe(c){return c.pagado?(c.tipo==="interes"?"interes":"pagado"):(c.fecha<HOY?"vencido":"porvencer");}
-const cobrada = e => e==="pagado"||e==="interes";
+const TIPO_ESTADO = {interes:"interes", liquidacion:"liquidado", abono:"abono"};
+function estadoDe(c){return c.pagado?(TIPO_ESTADO[c.tipo]||"pagado"):(c.fecha<HOY?"vencido":"porvencer");}
+const cobrada = e => e==="pagado"||e==="interes"||e==="liquidado"||e==="abono";
+const esExtra = c => c.tipo==="abono"||c.tipo==="liquidacion";   // filas de abono extra / liquidación anticipada
 
 /* ---------- generación de tabla (mismo método de los PDF) ---------- */
 function generarCuotas(capital,tasa,meses,primera){
@@ -418,6 +473,7 @@ function generarCuotas(capital,tasa,meses,primera){
 const SEED_VERSION = 2;
 let state = {version:1, seedVersion:SEED_VERSION, loans:[]};
 const sync = {sha:null, base:null, dirty:false, rev:0, busy:false, again:false, timer:null, kind:"", lastOk:null};
+function autoSave(){try{return localStorage.getItem(LS_AUTO)!=="0";}catch(e){return true;}}
 function getToken(){try{return localStorage.getItem(LS_TOKEN)||"";}catch(e){return "";}}
 function readCache(){try{const c=JSON.parse(localStorage.getItem(LS_KEY)||"null"); if(c&&c.state&&Array.isArray(c.state.loans)) return c;}catch(e){console.warn(e);} return null;}
 function writeCache(){try{localStorage.setItem(LS_KEY,JSON.stringify({state,sha:sync.sha,base:sync.base,dirty:sync.dirty,lastOk:sync.lastOk}));}catch(e){console.warn(e);}}
@@ -454,9 +510,11 @@ function serialize(){return JSON.stringify({app:"control-prestamos",version:1,se
 function setStatus(kind,msg){
   sync.kind=kind; const el=document.getElementById("syncStatus"); if(!el) return;
   const M={loading:["busy","Cargando…"],pending:["busy","Guardando…"],saving:["busy","Guardando…"],saved:["ok","Guardado ✓"],synced:["ok","Sincronizado ✓"],
-    offline:["warn","Sin conexión · guardado aquí"],error:["err","Error al guardar"],nocon:["warn","Sin conectar"]};
+    offline:["warn","Sin conexión · guardado aquí"],error:["err","Error al guardar"],nocon:["warn","Sin conectar"],local:["warn","Cambios sin guardar"]};
   const m=M[kind]||["busy",kind]; el.className="sync "+m[0]; el.textContent=m[1]; el.title=msg||m[1];
+  updateSaveUI();
 }
+function updateSaveUI(){const b=document.getElementById("btnSave"); if(b) b.hidden=!(sync.dirty&&!autoSave()&&getToken()); const a=document.getElementById("autoSave"); if(a) a.checked=autoSave(); const s=document.getElementById("sAuto"); if(s) s.checked=autoSave();}
 /* Fusión a nivel de préstamo entre la última versión sincronizada (base), los cambios de este dispositivo (local)
    y lo que hay ahora en GitHub (remoto). Nunca se pisan cambios hechos en otro dispositivo: si el mismo préstamo
    cambió en ambos lados, se conserva la versión de GitHub y se avisa. */
@@ -505,20 +563,41 @@ async function push(){
       if(r.status===401||r.status===403){errMsg="El token no tiene permiso para guardar.";break;}
       errMsg="GitHub respondió HTTP "+r.status+(r.data&&r.data.message?": "+r.data.message:"");break;
     }
-    if(ok){sync.dirty=(sync.rev!==revAtStart);sync.lastOk=new Date().toISOString();writeCache();renderAll();setStatus(sync.dirty?"pending":"saved");
+    if(ok){sync.dirty=(sync.rev!==revAtStart);sync.lastOk=new Date().toISOString();writeCache();renderAll();setStatus(sync.dirty?(autoSave()?"pending":"local"):"saved");
       if(conflicts.length) toast("Otro dispositivo cambió al mismo tiempo: "+[...new Set(conflicts.map(l=>shortName(l.persona)))].join(", ")+". Se conservó su versión; revisa y vuelve a registrar tu cambio.");}
     else {setStatus("error",errMsg||"No se pudo guardar por conflictos repetidos. Toca para reintentar.");}
   }catch(e){
     if(e.auth) setStatus("error",e.message); else setStatus("offline","Sin conexión con GitHub. Los cambios quedan en este dispositivo y se subirán al reconectar.");
   }finally{
     sync.busy=false;
-    if(sync.again||(ok&&sync.dirty)){sync.again=false;if(sync.dirty)setTimeout(push,50);}
+    if(sync.again||(ok&&sync.dirty)){const forced=sync.again;sync.again=false;if(sync.dirty&&(autoSave()||forced))setTimeout(push,50);}
   }
 }
 function schedulePush(){clearTimeout(sync.timer);setStatus("pending");sync.timer=setTimeout(push,500);}
 function save(){
   state.updated=new Date().toISOString(); sync.dirty=true; sync.rev++;
-  writeCache(); schedulePush();
+  writeCache();
+  if(autoSave()) schedulePush(); else {clearTimeout(sync.timer); setStatus(getToken()?"local":"nocon","Cambios sin guardar: quedan en este dispositivo hasta que pulses Guardar");}
+}
+function pushNow(){clearTimeout(sync.timer); if(getToken()) push();}   // guardado explícito (botón Guardar / asistente)
+function setAutoSave(on){
+  try{localStorage.setItem(LS_AUTO,on?"1":"0");}catch(e){}
+  if(on&&sync.dirty&&getToken()){toast("Guardado automático encendido · subiendo cambios pendientes…");pushNow();}
+  else {toast(on?"Guardado automático encendido":"Guardado automático apagado: los cambios quedarán en este dispositivo hasta que pulses Guardar"); updateSaveUI();}
+}
+/* Con guardado automático apagado y cambios sin guardar: trae lo último de GitHub y fusiona por préstamo, sin subir nada. */
+async function pullMerge(){
+  setStatus("loading");
+  try{
+    const rem=await fetchRemote();
+    if(rem.doc&&sync.base){
+      const remoteLoans=validLoans(rem.doc)||[]; const m=mergeLoans(JSON.parse(sync.base),state.loans,remoteLoans);
+      state.loans=m.loans; sync.base=JSON.stringify(remoteLoans); sync.sha=rem.sha;
+      sync.dirty=JSON.stringify(state.loans)!==sync.base;
+      if(m.conflicts.length) toast("Otro dispositivo cambió: "+[...new Set(m.conflicts.map(l=>shortName(l.persona)))].join(", ")+". Se conservó su versión.");
+    }
+    sync.lastOk=new Date().toISOString(); writeCache(); renderAll(); setStatus(sync.dirty?"local":"synced"); return true;
+  }catch(e){ if(e.auth){setStatus("error",e.message);} else setStatus("offline","Sin conexión con GitHub; los cambios siguen en este dispositivo."); if(sync.dirty&&!autoSave())setStatus("local"); return false; }
 }
 function applyDoc(doc){
   const loans=validLoans(doc); if(!loans) throw new Error("data.json tiene un formato no reconocido");
@@ -527,6 +606,7 @@ function applyDoc(doc){
 /* Carga desde GitHub. Si hay cambios locales sin subir (p. ej. hechos sin conexión), primero se suben. */
 async function syncFromRemote(){
   if(!getToken()){showConnect();return false;}
+  if(sync.dirty&&!autoSave()) return pullMerge();
   if(sync.dirty){
     clearTimeout(sync.timer); await push();
     if(sync.dirty) return false;
@@ -564,7 +644,9 @@ function openSettings(){
     '<dt>Token</dt><dd>'+(tok?'Guardado en este dispositivo (…'+esc(tok.slice(-4))+')':'No conectado')+'</dd>'+
     '<dt>Estado</dt><dd>'+esc(document.getElementById("syncStatus").title||"")+'</dd>'+
     '<dt>Última sincronización</dt><dd>'+(sync.lastOk?esc(new Date(sync.lastOk).toLocaleString("es-EC")):"—")+'</dd>'+
-    '<dt>Préstamos</dt><dd>'+state.loans.length+'</dd>';
+    '<dt>Préstamos</dt><dd>'+state.loans.length+'</dd>'+
+    '<dt>Guardado</dt><dd>'+(autoSave()?'Automático':'Manual (botón Guardar)')+(sync.dirty?' · hay cambios sin guardar':'')+'</dd>';
+  $("#sAuto").checked=autoSave();
   $("#sLink").href="https://github.com/"+GH_OWNER+"/"+GH_REPO+"/blob/"+GH_BRANCH+"/"+GH_PATH;
   $("#setBg").classList.add("show");
 }
@@ -573,10 +655,10 @@ function disconnect(){
   if(!confirm("¿Desconectar este dispositivo?\nSe borrará el token y la copia local de los datos en este navegador. Los datos siguen en GitHub."+warn)) return;
   try{localStorage.removeItem(LS_TOKEN);localStorage.removeItem(LS_KEY);}catch(e){}
   clearTimeout(sync.timer); Object.assign(sync,{sha:null,base:null,dirty:false,rev:0,again:false,lastOk:null});
-  state={version:1,seedVersion:SEED_VERSION,loans:[]}; ui.open.clear(); ui.cuotaEdit=null;
+  state={version:1,seedVersion:SEED_VERSION,loans:[]}; ui.open.clear(); ui.cuotaEdit=null; ui.asis={monto:null,sel:null,abono:"auto",preview:false};
   $("#setBg").classList.remove("show"); renderAll(); showConnect(); toast("Dispositivo desconectado");
 }
-const ui = {cuotaEdit:null, formOrig:null, regenTocado:false, tab:"cuotas", mes:monthKey(HOY), estados:new Set(), persona:"", q:"", lEstado:"todos", lPersona:"", open:new Set(), editId:null, primeraTocada:false};
+const ui = {asis:{monto:null,sel:null,abono:"auto",preview:false}, cuotaEdit:null, formOrig:null, regenTocado:false, tab:"cuotas", mes:monthKey(HOY), estados:new Set(), persona:"", q:"", lEstado:"todos", lPersona:"", open:new Set(), editId:null, primeraTocada:false};
 
 function loanStats(L){
   const pagadoCap=L.cuotas.filter(c=>c.pagado).reduce((a,c)=>a+c.capital,0);
@@ -584,9 +666,11 @@ function loanStats(L){
   const pagadas=L.cuotas.filter(c=>c.pagado).length;
   const vencidas=L.cuotas.filter(c=>estadoDe(c)==="vencido").length;
   const fin=L.cuotas.length?L.cuotas[L.cuotas.length-1].fecha:"";
-  const ext=L.cuotas.filter(esSoloInteres).length, n=L.cuotas.length;
-  const finOrig=ext&&n-1-ext>=0?L.cuotas[n-1-ext].fecha:fin;
-  return {saldo:r2(L.capital-pagadoCap), interes:r2(interes), pagadas, total:n, vencidas, fin, ext, plazoOrig:n-ext, finOrig, estado: pagadas===n?"pagado":"vigente"};
+  const ext=L.cuotas.filter(esSoloInteres).length, n=L.cuotas.length, extras=L.cuotas.filter(esExtra);
+  const regular=n-extras.length, liq=extras.find(c=>c.tipo==="liquidacion")||null, abonos=extras.filter(c=>c.tipo==="abono");
+  const plazoOrig=Number(L.plazo)>0?Number(L.plazo):regular-ext;
+  let finOrig=fin; const conFin=extras.find(c=>c.finAntes); if(conFin) finOrig=conFin.finAntes; else if(ext&&n-1-ext>=0) finOrig=L.cuotas[n-1-ext].fecha;
+  return {saldo:r2(L.capital-pagadoCap), interes:r2(interes), pagadas, total:n, vencidas, fin, ext, plazoOrig, plazoAct:regular, finOrig, liq, abonos:abonos.length, estado: pagadas===n?"pagado":"vigente"};
 }
 function loanLabel(L){return money(L.capital)+" · "+fmtDate(L.transferencia);}
 function allRows(){
@@ -599,7 +683,7 @@ function filteredRows(){
   const q=ui.q.trim().toLowerCase();
   return allRows().filter(r=>{
     if(ui.mes!=="todos" && monthKey(r.c.fecha)!==ui.mes) return false;
-    if(ui.estados.size && !ui.estados.has(r.estado)) return false;
+    if(ui.estados.size && !ui.estados.has(r.estado) && !(ui.estados.has("anticipado")&&(r.estado==="liquidado"||r.estado==="abono"))) return false;
     if(ui.persona && r.L.persona!==ui.persona) return false;
     if(q){
       const hay=[r.L.persona,r.L.cedula,loanLabel(r.L),fmtDate(r.c.fecha),money(r.total),money(r.c.capital),money(r.c.interes),ESTADO_LABEL[r.estado],String(r.total)].join(" ").toLowerCase();
@@ -609,16 +693,16 @@ function filteredRows(){
   });
 }
 function sumRows(rows){
-  const s={n:rows.length,total:0,capital:0,interes:0,cobrado:0,pendiente:0,porvencer:0,vencido:0,nPag:0,nVen:0,nPor:0,nInt:0,soloInteres:0};
+  const s={n:rows.length,total:0,capital:0,interes:0,cobrado:0,pendiente:0,porvencer:0,vencido:0,nPag:0,nVen:0,nPor:0,nInt:0,soloInteres:0,nAnt:0};
   rows.forEach(r=>{s.total+=r.total;s.capital+=r.c.capital;s.interes+=r.c.interes;
-    if(cobrada(r.estado)){s.cobrado+=r.total;s.nPag++;if(r.estado==="interes"){s.nInt++;s.soloInteres+=r.total;}} else {s.pendiente+=r.total; if(r.estado==="vencido"){s.vencido+=r.total;s.nVen++;} else {s.porvencer+=r.total;s.nPor++;}}});
+    if(cobrada(r.estado)){s.cobrado+=r.total;s.nPag++;if(r.estado==="interes"){s.nInt++;s.soloInteres+=r.total;}if(r.estado==="liquidado"||r.estado==="abono")s.nAnt++;} else {s.pendiente+=r.total; if(r.estado==="vencido"){s.vencido+=r.total;s.nVen++;} else {s.porvencer+=r.total;s.nPor++;}}});
   for(const k of ["total","capital","interes","cobrado","pendiente","porvencer","vencido","soloInteres"]) s[k]=r2(s[k]);
   return s;
 }
 function personas(){return [...new Set(state.loans.map(L=>L.persona))].sort((a,b)=>a.localeCompare(b));}
 
 /* ---------- render ---------- */
-function renderAll(){renderKpis();renderFilterOptions();renderCuotas();renderResumen();renderPrestamos();}
+function renderAll(){renderKpis();renderFilterOptions();renderCuotas();renderResumen();renderPrestamos();renderAsistente();}
 function renderKpis(){
   const st=state.loans.map(loanStats);
   const vig=st.filter(s=>s.estado==="vigente").length;
@@ -655,12 +739,12 @@ function renderCuotas(){
     card("main","Total a cobrar",money(s.total),"capital + interés")+
     card("","Capital",money(s.capital))+
     card("","Interés",money(s.interes))+
-    card("ok","Cobrado",money(s.cobrado),s.nPag+" cuota(s)"+(s.nInt?" · "+s.nInt+" solo interés":""))+
+    card("ok","Cobrado",money(s.cobrado),s.nPag+" cuota(s)"+(s.nInt?" · "+s.nInt+" solo interés":"")+(s.nAnt?" · "+s.nAnt+" anticipado":""))+
     card("warn","Por vencer",money(s.porvencer),s.nPor+" cuota(s)")+
     card("bad","Vencido",money(s.vencido),s.nVen+" cuota(s)")+
     card("","Nº cuotas",String(s.n),s.nPag+" pagadas · "+(s.n-s.nPag)+" pendientes");
   let t="Cuotas"+(ui.mes==="todos"?" · todos los meses":" · "+monthLabel(ui.mes));
-  if(ui.estados.size) t+=" · "+[...ui.estados].map(e=>ESTADO_LABEL[e]).join(", ");
+  if(ui.estados.size) t+=" · "+[...ui.estados].map(e=>e==="anticipado"?"Liquidado / abono":ESTADO_LABEL[e]).join(", ");
   if(ui.persona) t+=" · "+shortName(ui.persona);
   $("#cuotasTitle").textContent=t;
   /* Total “Saldo después”: por cada préstamo mostrado, el saldo tras su última cuota visible (las filas están ordenadas por fecha). */
@@ -722,9 +806,9 @@ function renderPrestamos(){
       '<td data-l="Cédula">'+esc(L.cedula||"—")+'</td>'+
       '<td class="num" data-l="Capital">'+money(L.capital)+'</td>'+
       '<td class="num" data-l="Tasa">'+r2(L.tasa)+'% mensual</td>'+
-      '<td class="num" data-l="Plazo">'+(s.ext?'<span title="Plazo original → actual (+'+s.ext+' por pagos de solo interés)">'+s.plazoOrig+' → <b>'+s.total+'</b> meses</span>':s.total+' meses')+'</td>'+
+      '<td class="num" data-l="Plazo">'+(s.liq?s.plazoOrig+' meses<br><small class="muted">liquidado</small>':(s.plazoAct!==s.plazoOrig?'<span title="Plazo original → actual">'+s.plazoOrig+' → <b>'+s.plazoAct+'</b> meses</span>':s.plazoAct+' meses'))+'</td>'+
       '<td data-l="Transferencia">'+fmtDate(L.transferencia)+'</td>'+
-      '<td data-l="Fecha fin">'+fmtDate(s.fin)+(s.ext?'<br><small class="muted">antes '+fmtDate(s.finOrig)+'</small>':'')+'</td>'+
+      '<td data-l="Fecha fin">'+fmtDate(s.fin)+(s.finOrig&&s.finOrig!==s.fin?'<br><small class="muted">antes '+fmtDate(s.finOrig)+'</small>':'')+'</td>'+
       '<td class="num" data-l="Saldo capital"><b>'+money(s.saldo)+'</b></td>'+
       '<td class="num" data-l="Interés total">'+money(s.interes)+'</td>'+
       '<td data-l="Estado"><div><span class="badge '+(s.estado==="pagado"?"b-pagado":"b-vigente")+'">'+(s.estado==="pagado"?"Pagado":"Vigente")+'</span>'+
@@ -735,10 +819,12 @@ function renderPrestamos(){
       h+='<tr class="expand"><td colspan="11"><div class="inner">'+renderCuotaEditor(L)+'</div></td></tr>';
     } else if(open){
       h+='<tr class="expand"><td colspan="11"><div class="inner">'+(L.nota?'<div class="note">'+esc(L.nota)+'</div>':'')+
-        (s.ext?'<div class="note" style="background:#eef1f5;border-color:#d5dbe4;color:#3c4a5e">Plazo extendido de '+s.plazoOrig+' a '+s.total+' meses por '+s.ext+' pago(s) de solo interés. Fecha fin: '+fmtDate(s.fin)+' (antes '+fmtDate(s.finOrig)+'). Para deshacer, toca “↺ Deshacer” en la cuota de “Solo interés”.</div>':'')+
+        (s.liq?'<div class="note" style="background:#e9f6f3;border-color:#bfe3da;color:#0f5246">Liquidación anticipada el '+fmtDate(s.liq.fecha)+': se cobró '+money(cuotaTotal(s.liq))+' (capital '+money(s.liq.capital)+' + interés '+money(s.liq.interes)+') y se dejaron de generar '+money(s.liq.interesAhorrado||0)+' de interés futuro. Para deshacer, toca “↺ Deshacer liquidación”.</div>':'')+
+        (s.abonos?'<div class="note" style="background:#efeefe;border-color:#d4d1f7;color:#3730a3">Tiene '+s.abonos+' abono(s) extra a capital: el saldo bajó y el interés futuro se recalculó. Para deshacer, toca “↺ Deshacer abono”.</div>':'')+
+        (s.ext?'<div class="note" style="background:#eef1f5;border-color:#d5dbe4;color:#3c4a5e">Plazo extendido de '+(s.total-s.ext)+' a '+s.total+' meses por '+s.ext+' pago(s) de solo interés. Fecha fin: '+fmtDate(s.fin)+' (antes '+fmtDate(s.finOrig)+'). Para deshacer, toca “↺ Deshacer” en la cuota de “Solo interés”.</div>':'')+
         '<div class="ce-bar"><b>Tabla de amortización</b><span class="spacer"></span><button class="btn sm" data-cedit="'+esc(L.id)+'">✎ Editar cuotas</button><button class="btn sm" data-edit="'+esc(L.id)+'">Editar préstamo</button></div>'+
         '<table class="responsive"><thead><tr><th>Nº</th><th>Fecha de pago</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th><th>Estado</th><th>Cobro</th></tr></thead><tbody>'+
-        L.cuotas.map(c=>{const e=estadoDe(c),k=L.id+"|"+c.n;return '<tr class="is-'+e+'"><td data-l="Nº">'+c.n+'</td><td data-l="Fecha de pago">'+fmtDate(c.fecha)+'</td><td class="num" data-l="Saldo inicial">'+money(c.saldoIni)+'</td><td class="num" data-l="Capital">'+money(c.capital)+'</td><td class="num" data-l="Interés">'+money(c.interes)+'</td><td class="num" data-l="Cuota"><b>'+money(cuotaTotal(c))+'</b></td><td class="num" data-l="Saldo final">'+money(c.saldoFin)+'</td><td data-l="Estado"><span class="badge b-'+e+'">'+ESTADO_LABEL[e]+'</span>'+(esSoloInteres(c)?'<br><small class="muted">capital '+money(c.capitalAplazado||0)+' aplazado</small>':'')+'</td><td data-l="Cobro">'+cobroCell(L,c)+'</td></tr>';}).join("")+
+        L.cuotas.map(c=>{const e=estadoDe(c),k=L.id+"|"+c.n;return '<tr class="is-'+e+'"><td data-l="Nº">'+c.n+'</td><td data-l="Fecha de pago">'+fmtDate(c.fecha)+'</td><td class="num" data-l="Saldo inicial">'+money(c.saldoIni)+'</td><td class="num" data-l="Capital">'+money(c.capital)+'</td><td class="num" data-l="Interés">'+money(c.interes)+'</td><td class="num" data-l="Cuota"><b>'+money(cuotaTotal(c))+'</b></td><td class="num" data-l="Saldo final">'+money(c.saldoFin)+'</td><td data-l="Estado"><span class="badge b-'+e+'">'+ESTADO_LABEL[e]+'</span>'+(esSoloInteres(c)?'<br><small class="muted">capital '+money(c.capitalAplazado||0)+' aplazado</small>':'')+(c.tipo==="liquidacion"?'<br><small class="muted">liquidación anticipada</small>':'')+(c.tipo==="abono"?'<br><small class="muted">abono a capital</small>':'')+'</td><td data-l="Cobro">'+cobroCell(L,c)+'</td></tr>';}).join("")+
         '<tr class="total"><td data-l="">Total</td><td data-l=""></td><td data-l=""></td><td class="num" data-l="Capital">'+money(L.cuotas.reduce((a,c)=>a+c.capital,0))+'</td><td class="num" data-l="Interés">'+money(s.interes)+'</td><td class="num" data-l="Cuota">'+money(L.cuotas.reduce((a,c)=>a+cuotaTotal(c),0))+'</td><td data-l=""></td><td data-l=""></td><td data-l=""></td></tr>'+
         '</tbody></table><p class="muted" style="margin:8px 0 0">Origen: '+esc(L.origen||"Manual")+'</p></div></td></tr>';
     }
@@ -749,7 +835,7 @@ function renderPrestamos(){
 
 /* ---------- editor de cuotas ---------- */
 function startCuotaEdit(id){const L=state.loans.find(x=>x.id===id);if(!L)return;
-  ui.cuotaEdit={id,capital:r2(L.capital),rows:L.cuotas.map(c=>({fecha:c.fecha,capital:c.capital,interes:c.interes,pagado:!!c.pagado,tipo:c.tipo==="interes"?"interes":"",capitalAplazado:c.capitalAplazado,fechaPagoReal:c.fechaPagoReal||"",asumido:!!c.asumido}))};
+  ui.cuotaEdit={id,capital:r2(L.capital),rows:L.cuotas.map(c=>({orig:c,fecha:c.fecha,capital:c.capital,interes:c.interes,pagado:!!c.pagado,tipo:c.tipo||"",capitalAplazado:c.capitalAplazado,fechaPagoReal:c.fechaPagoReal||"",asumido:!!c.asumido}))};
   ui.open.add(id); renderPrestamos();}
 function ceCalc(){const d=ui.cuotaEdit;let saldo=d.capital;return d.rows.map(r=>{const ini=r2(saldo);saldo=r2(saldo-(+r.capital||0));return {ini,fin:saldo,total:r2((+r.capital||0)+(+r.interes||0))};});}
 function ceSummaryHtml(){const d=ui.cuotaEdit;const sc=r2(d.rows.reduce((a,r)=>a+(+r.capital||0),0)),si=r2(d.rows.reduce((a,r)=>a+(+r.interes||0),0));
@@ -769,7 +855,7 @@ function renderCuotaEditor(L){
       '<td class="num" data-l="Interés"><input type="number" step="0.01" min="0" data-ce="interes" data-i="'+i+'" value="'+r.interes+'"></td>'+
       '<td class="num" data-l="Cuota" data-ce-tot="'+i+'"><b>'+money(calc[i].total)+'</b></td>'+
       '<td class="num" data-l="Saldo final" data-ce-fin="'+i+'">'+money(calc[i].fin)+'</td>'+
-      '<td data-l="Estado"><select data-ce="pagado" data-i="'+i+'"><option value="0"'+(r.pagado?'':' selected')+'>Pendiente</option><option value="1"'+(r.pagado&&r.tipo!=="interes"?' selected':'')+'>Pagado</option><option value="2"'+(r.pagado&&r.tipo==="interes"?' selected':'')+'>Solo interés</option></select></td>'+
+      '<td data-l="Estado"><select data-ce="pagado" data-i="'+i+'"><option value="0"'+(r.pagado?'':' selected')+'>Pendiente</option><option value="1"'+(r.pagado&&!r.tipo?' selected':'')+'>Pagado</option><option value="2"'+(r.pagado&&r.tipo==="interes"?' selected':'')+'>Solo interés</option>'+(r.tipo==="liquidacion"||r.tipo==="abono"?'<option value="x"'+(r.pagado?' selected':'')+'>'+(r.tipo==="liquidacion"?"Liquidado":"Abono extra")+'</option>':'')+'</select></td>'+
       '<td data-l="Fecha pago real"><input type="date" data-ce="fechaPagoReal" data-i="'+i+'" value="'+esc(r.fechaPagoReal)+'"'+(r.pagado?'':' disabled')+'></td>'+
       '<td data-l=""><button class="btn sm danger" data-ce-del="'+i+'" title="Eliminar cuota">🗑</button></td></tr>').join("")+
     '</tbody></table><div id="ceSum">'+ceSummaryHtml()+'</div>'+
@@ -779,7 +865,7 @@ function ceRefresh(){const calc=ceCalc();calc.forEach((c,i)=>{const a=document.q
   if(a)a.textContent=money(c.ini);if(b)b.textContent=money(c.fin);if(t)t.innerHTML='<b>'+money(c.total)+'</b>';});const s=$("#ceSum");if(s)s.innerHTML=ceSummaryHtml();}
 function ceInput(el){const d=ui.cuotaEdit;if(!d)return;const i=+el.dataset.i,f=el.dataset.ce,r=d.rows[i];if(!r)return;
   if(f==="capital"||f==="interes"){r[f]=r2(parseFloat(el.value)||0);}
-  else if(f==="pagado"){r.pagado=el.value!=="0";r.tipo=el.value==="2"?"interes":"";const fd=document.querySelector('input[data-ce="fechaPagoReal"][data-i="'+i+'"]');
+  else if(f==="pagado"){r.pagado=el.value!=="0";r.tipo=el.value==="2"?"interes":el.value==="x"?(r.orig&&r.orig.tipo||""):"";const fd=document.querySelector('input[data-ce="fechaPagoReal"][data-i="'+i+'"]');
     if(r.pagado&&!r.fechaPagoReal){r.fechaPagoReal=HOY;}if(!r.pagado)r.fechaPagoReal="";r.asumido=false;if(fd){fd.disabled=!r.pagado;fd.value=r.fechaPagoReal;}}
   else {r[f]=el.value; if(f==="fechaPagoReal")r.asumido=false;}
   ceRefresh();}
@@ -794,17 +880,19 @@ function ceAction(act,L){const d=ui.cuotaEdit;
     const sc=r2(d.rows.reduce((a,r)=>a+r.capital,0));
     if(Math.abs(sc-d.capital)>=0.005){if(!confirm("La suma del capital de las cuotas ("+money(sc)+") no coincide con el capital del préstamo ("+money(d.capital)+").\n¿Guardar y actualizar el capital del préstamo a "+money(sc)+"?"))return;L.capital=sc;}
     const calc=(function(){let s=L.capital;return d.rows.map(r=>{const ini=r2(s);s=r2(s-r.capital);return {ini,fin:s};});})();
-    L.cuotas=d.rows.map((r,i)=>Object.assign({n:i+1,fecha:r.fecha,saldoIni:calc[i].ini,capital:r2(r.capital),interes:r2(r.interes),saldoFin:calc[i].fin,pagado:r.pagado,fechaPagoReal:r.pagado?(r.fechaPagoReal||HOY):null,asumido:r.pagado&&!!r.asumido},r.pagado&&r.tipo==="interes"?{tipo:"interes",capitalAplazado:r.capitalAplazado}:{}));
-    L.plazo=L.cuotas.length-L.cuotas.filter(esSoloInteres).length; ui.cuotaEdit=null; save(); renderAll(); toast("Cuotas guardadas");return;}
+    L.cuotas=d.rows.map((r,i)=>Object.assign({n:i+1,fecha:r.fecha,saldoIni:calc[i].ini,capital:r2(r.capital),interes:r2(r.interes),saldoFin:calc[i].fin,pagado:r.pagado,fechaPagoReal:r.pagado?(r.fechaPagoReal||HOY):null,asumido:r.pagado&&!!r.asumido},r.pagado&&r.tipo?extraFields(r):{}));
+    if(!L.cuotas.some(esExtra)) L.plazo=L.cuotas.length-L.cuotas.filter(esSoloInteres).length; ui.cuotaEdit=null; save(); renderAll(); toast("Cuotas guardadas");return;}
   renderPrestamos();
 }
 
+function extraFields(r){const o={tipo:r.tipo};if(r.tipo==="interes")o.capitalAplazado=r.capitalAplazado;
+  if(r.orig&&r.orig.tipo===r.tipo)["nota","reemplazadas","antes","finAntes","interesAhorrado"].forEach(k=>{if(r.orig[k]!==undefined)o[k]=r.orig[k];});return o;}
 /* ---------- cobro: abonar (completo / solo interés), deshacer ---------- */
 function cobroCell(L,c){
   const k=L.id+"|"+c.n;
   if(!c.pagado) return '<div class="paybox"><button class="btn sm abonar" data-abonar="'+esc(k)+'" type="button">Abonar ▾</button></div>';
   return '<div class="paybox"><input type="date" class="paydate" data-k="'+esc(k)+'" value="'+esc(c.fechaPagoReal||"")+'" title="Fecha real de pago'+(c.asumido?' (asumida)':'')+'">'+
-    '<button class="btn sm undo" data-undo="'+esc(k)+'" type="button" title="Deshacer: volver a Pendiente'+(esSoloInteres(c)?' y quitar el mes agregado':'')+'">↺ Deshacer</button></div>';
+    '<button class="btn sm undo" data-undo="'+esc(k)+'" type="button" title="Deshacer: volver a Pendiente'+(esSoloInteres(c)?' y quitar el mes agregado':'')+'">↺ Deshacer'+(c.tipo==="liquidacion"?' liquidación':c.tipo==="abono"?' abono':'')+'</button></div>';
 }
 function laterPaid(L,idx){return L.cuotas.slice(idx+1).some(c=>c.pagado);}
 function renumber(L){L.cuotas.forEach((c,i)=>{c.n=i+1;});}
@@ -835,6 +923,11 @@ function pagarSoloInteres(k){
 }
 function deshacer(k){
   const f=findCuota(k);if(!f||!f.c||!f.c.pagado)return;const L=f.L,idx=L.cuotas.indexOf(f.c),c=f.c;
+  if(c.tipo==="liquidacion"||c.tipo==="abono"){
+    const ok=deshacerAnticipado(L,idx);
+    if(ok){save();renderAll();toast(c.tipo==="liquidacion"?"Liquidación deshecha: las cuotas vuelven a estar pendientes":"Abono deshecho: se restauró el saldo y las cuotas");}
+    return;
+  }
   if(c.tipo==="interes"){
     if(laterPaid(L,idx)){alert("Para deshacer este pago de solo interés primero desmarca las cuotas posteriores que ya están pagadas.");return;}
     const fechas=L.cuotas.map(x=>x.fecha);
@@ -862,12 +955,174 @@ function openAbono(btn){
 }
 function closeAbono(){const m=$("#abonoMenu");if(m)m.hidden=true;}
 
+/* ---------- asistente de abonos: liquidación / abono extra / optimizador ---------- */
+/* Situación actual de un préstamo vigente. "Ahora" (C) = cuotas vencidas sin pagar + la primera cuota pendiente de este mes:
+   su interés se paga al liquidar. El interés del resto de cuotas es el interés futuro que se evita. */
+function situacion(L){
+  const idx=[];L.cuotas.forEach((c,i)=>{if(!c.pagado)idx.push(i);}); if(!idx.length) return null;
+  const cur=monthKey(HOY); const C=[];
+  for(const i of idx){const c=L.cuotas[i]; if(c.fecha<HOY){C.push(i);continue;} if(monthKey(c.fecha)===cur&&!C.some(j=>L.cuotas[j].fecha>=HOY))C.push(i); break;}
+  const saldo=r2(idx.reduce((a,i)=>a+L.cuotas[i].capital,0));
+  const intC=r2(C.reduce((a,i)=>a+L.cuotas[i].interes,0)), nVenc=C.filter(i=>L.cuotas[i].fecha<HOY).length;
+  const after=idx.filter(i=>!C.includes(i));
+  const futuro=r2(after.reduce((a,i)=>a+L.cuotas[i].interes,0));
+  const startAfter=C.length?C[C.length-1]+1:idx[0];
+  const abonable=after.length>0 && L.cuotas.slice(startAfter).every(c=>!c.pagado);
+  return {L,id:L.id,tasa:Number(L.tasa)||0,saldo,intC,nVenc,pago:r2(saldo+intC),ahorro:futuro,nC:C.length,nAfter:after.length,
+    afterCaps:after.map(i=>L.cuotas[i].capital),afterIni:after.length?L.cuotas[after[0]].saldoIni:0,afterCap:r2(after.reduce((a,i)=>a+L.cuotas[i].capital,0)),startAfter,abonable,
+    fin:L.cuotas[L.cuotas.length-1].fecha};
+}
+/* Interés que se evita con un abono A a capital: se descuenta de las últimas cuotas (acorta el plazo) y el interés
+   futuro se recalcula sobre el saldo menor. Cálculo rápido sin modificar datos. */
+function ahorroAbono(s,A){
+  if(!s||!s.abonable||!(A>0)) return 0; A=Math.min(A,s.afterCap);
+  const caps=s.afterCaps.slice(); let left=A; for(let i=caps.length-1;i>=0&&left>0.0001;i--){const tk=Math.min(left,caps[i]);caps[i]=r2(caps[i]-tk);left=r2(left-tk);}
+  let saldo=r2(s.afterIni-A), nuevo=0; for(const cp of caps){if(cp<=0.004)continue; nuevo+=r2(saldo*s.tasa/100); saldo=r2(saldo-cp);}
+  return r2(s.ahorro-nuevo);
+}
+function mejorAbono(sits,left,excluir,forzar){
+  if(!(left>=1)) return null; let best=null;
+  for(const s of sits){ if(excluir.has(s.id)||!s.abonable) continue; if(forzar&&forzar!=="auto"&&s.id!==forzar) continue;
+    const A=r2(Math.min(left,s.afterCap)); const ah=ahorroAbono(s,A); if(!best||ah>best.ahorro+0.004||(Math.abs(ah-best.ahorro)<0.005&&A>best.monto)) best={id:s.id,s,monto:A,ahorro:ah}; }
+  return best&&best.ahorro>0?best:null;
+}
+/* Optimizador: elige la combinación de liquidaciones que cabe en el monto y maximiza el interés ahorrado
+   (incluido el abono extra con el sobrante). Exacto (todas las combinaciones) hasta 18 préstamos; si hay más,
+   mochila 0/1 por dólares + abono. Desempate: menos sobrante, luego tasa más alta. */
+function calcularPlan(loans,monto,sel,abonoOpt){
+  const sits=loans.map(situacion).filter(Boolean).sort((a,b)=>(b.ahorro/b.pago)-(a.ahorro/a.pago)||b.tasa-a.tasa);
+  const M=Math.round(monto*100); let chosen;
+  if(sel){ chosen=new Set(sits.filter(s=>sel.has(s.id)).map(s=>s.id)); }
+  else {
+    let best={v:-1,left:Infinity,set:new Set()};
+    const consider=(set,used)=>{const left=r2((M-used)/100);const ab=abonoOpt==="none"?null:mejorAbono(sits,left,set,abonoOpt);
+      const v=Math.round((sits.filter(s=>set.has(s.id)).reduce((a,s)=>a+s.ahorro,0)+(ab?ab.ahorro:0))*100);
+      const l=Math.round((left-(ab?ab.monto:0))*100);
+      if(v>best.v||(v===best.v&&l<best.left)) best={v,left:l,set:new Set(set)};};
+    const n=sits.length, P=sits.map(s=>Math.round(s.pago*100));
+    if(n<=18){ for(let m=0;m<(1<<n);m++){let used=0,ok=true;const set=new Set();for(let i=0;i<n;i++)if(m&(1<<i)){used+=P[i];if(used>M){ok=false;break;}set.add(sits[i].id);} if(ok)consider(set,used);} }
+    else { const W=Math.floor(M/100), w=P.map(p=>Math.ceil(p/100)); const dp=new Array(W+1).fill(0), keep=sits.map(()=>new Uint8Array(W+1));
+      for(let i=0;i<n;i++){const v=Math.round(sits[i].ahorro*100);for(let c=W;c>=w[i];c--){if(dp[c-w[i]]+v>dp[c]){dp[c]=dp[c-w[i]]+v;keep[i][c]=1;}}}
+      const set=new Set();let c=W,used=0;for(let i=n-1;i>=0;i--){if(keep[i][c]){set.add(sits[i].id);c-=w[i];used+=P[i];}} consider(set,used); }
+    chosen=best.set;
+  }
+  const liq=sits.filter(s=>chosen.has(s.id));
+  const usedLiq=r2(liq.reduce((a,s)=>a+s.pago,0)), left0=r2(monto-usedLiq);
+  const ab=(left0>=1&&abonoOpt!=="none")?mejorAbono(sits,left0,chosen,abonoOpt):null;
+  const used=r2(usedLiq+(ab?ab.monto:0));
+  return {monto:r2(monto),sits,chosen,liq,abono:ab,usado:used,sobrante:r2(monto-used),ahorro:r2(liq.reduce((a,s)=>a+s.ahorro,0)+(ab?ab.ahorro:0)),excede:usedLiq>monto+0.004?r2(usedLiq-monto):0};
+}
+/* Aplicar al préstamo (también se usa sobre copias para la vista previa). */
+function aplicarLiquidacion(L,fecha){
+  const s=situacion(L); if(!s) return null;
+  const finAntes=L.cuotas[L.cuotas.length-1].fecha;
+  const rep=[];L.cuotas.forEach((c,i)=>{if(!c.pagado)rep.push({i,c:JSON.parse(JSON.stringify(c))});});
+  L.cuotas=L.cuotas.filter(c=>c.pagado);
+  L.cuotas.push({n:0,fecha,saldoIni:s.saldo,capital:s.saldo,interes:s.intC,saldoFin:0,pagado:true,fechaPagoReal:fecha,asumido:false,tipo:"liquidacion",nota:"Liquidación anticipada",interesAhorrado:s.ahorro,finAntes,reemplazadas:rep});
+  renumber(L); recalcFrom(L,0); return s;
+}
+function aplicarAbono(L,monto,fecha){
+  const s=situacion(L); if(!s||!s.abonable) return null; const A=r2(Math.min(monto,s.afterCap)); if(!(A>0)) return null;
+  const k=s.startAfter, finAntes=L.cuotas[L.cuotas.length-1].fecha, antes=JSON.parse(JSON.stringify(L.cuotas.slice(k)));
+  const intAntes=r2(antes.reduce((a,c)=>a+c.interes,0));
+  let left=A; for(let i=L.cuotas.length-1;i>=k&&left>0.0001;i--){const c=L.cuotas[i];const tk=Math.min(left,c.capital);c.capital=r2(c.capital-tk);left=r2(left-tk);if(c.capital<=0.004)L.cuotas.splice(i,1);}
+  L.cuotas.splice(k,0,{n:0,fecha,saldoIni:0,capital:A,interes:0,saldoFin:0,pagado:true,fechaPagoReal:fecha,asumido:false,tipo:"abono",nota:"Abono extra a capital",finAntes,antes});
+  renumber(L); recalcFrom(L,0);
+  const intDesp=r2(L.cuotas.slice(k+1).reduce((a,c)=>a+c.interes,0)); L.cuotas[k].interesAhorrado=r2(intAntes-intDesp);
+  return {monto:A,ahorro:r2(intAntes-intDesp)};
+}
+function deshacerAnticipado(L,idx){
+  const c=L.cuotas[idx];
+  if(c.tipo==="abono"){
+    if(laterPaid(L,idx)){alert("Para deshacer este abono primero desmarca las cuotas posteriores que ya están pagadas.");return false;}
+    L.cuotas.splice(idx,L.cuotas.length-idx,...(c.antes||[]).map(x=>JSON.parse(JSON.stringify(x))));
+  } else {
+    if(laterPaid(L,idx)){alert("Hay pagos registrados después de la liquidación; desmárcalos primero.");return false;}
+    L.cuotas.splice(idx,1);
+    (c.reemplazadas||[]).slice().sort((a,b)=>a.i-b.i).forEach(r=>L.cuotas.splice(Math.min(r.i,L.cuotas.length),0,JSON.parse(JSON.stringify(r.c))));
+  }
+  renumber(L); recalcFrom(L,0); return true;
+}
+/* ---------- asistente: interfaz ---------- */
+function totalesCartera(loans){let saldo=0,futuro=0,pend=0;loans.forEach(L=>{L.cuotas.forEach(c=>{if(!c.pagado){saldo+=c.capital;futuro+=c.interes;pend++;}});});return {saldo:r2(saldo),interes:r2(futuro),pend};}
+function planActual(){const a=ui.asis; if(!(a.monto>0)) return null; return calcularPlan(state.loans,a.monto,a.sel,a.abono);}
+function aplicarPlan(loans,plan){
+  const res=[];
+  plan.liq.forEach(s=>{const L=loans.find(x=>x.id===s.id);if(L){const r=aplicarLiquidacion(L,HOY);if(r)res.push({tipo:"liq",L,r});}});
+  if(plan.abono){const L=loans.find(x=>x.id===plan.abono.id);if(L){const r=aplicarAbono(L,plan.abono.monto,HOY);if(r)res.push({tipo:"abono",L,r});}}
+  return res;
+}
+function renderAsistente(){
+  const out=$("#aOut"); if(!out) return; const a=ui.asis;
+  if(!(a.monto>0)){out.innerHTML='<div class="panel" style="margin-top:14px"><div class="empty">Escribe un monto y pulsa “Calcular sugerencia”.</div></div>';return;}
+  const p=planActual(); if(!p.sits.length){out.innerHTML='<div class="panel" style="margin-top:14px"><div class="empty">No hay préstamos vigentes.</div></div>';return;}
+  const card=(cls,l,v,sub)=>'<div class="card '+cls+'"><div class="l">'+l+'</div><div class="v">'+v+'</div>'+(sub?'<div class="s">'+sub+'</div>':'')+'</div>';
+  let sug='';
+  p.liq.forEach(s=>{sug+='<li class="liq">✔ <b>Liquidar '+esc(s.L.persona)+'</b>: pagas '+money(s.pago)+' (capital '+money(s.saldo)+(s.intC>0?' + interés '+(s.nVenc?(s.nVenc<s.nC?'vencido y de este mes ':'vencido '):'de este mes ')+money(s.intC):'')+') y te ahorras <b>'+money(s.ahorro)+'</b> de interés futuro'+(s.nAfter?' ('+s.nAfter+' cuota'+(s.nAfter>1?'s':'')+' menos)':'')+'. Tasa '+r2(s.tasa)+'% mensual.</li>';});
+  if(p.abono){const s=p.abono.s, nuevoSaldo=r2(s.saldo-p.abono.monto); sug+='<li class="abo">➕ <b>Abono extra de '+money(p.abono.monto)+' a '+esc(s.L.persona)+'</b>: su saldo baja de '+money(s.saldo)+' a '+money(nuevoSaldo)+' y te ahorras <b>'+money(p.abono.ahorro)+'</b> de interés futuro (se acortan las últimas cuotas).</li>';}
+  if(!p.liq.length&&!p.abono) sug+='<li class="info">Con este monto no alcanza para liquidar ningún préstamo ni conviene un abono.</li>';
+  if(p.sobrante>=0.01) sug+='<li class="info">Sobrante sin asignar: '+money(p.sobrante)+(p.sobrante<1?' (muy pequeño para abonar)':'')+'.</li>';
+  const keep=p.sits.filter(s=>!p.chosen.has(s.id));
+  const rows=p.sits.map(s=>{const isL=p.chosen.has(s.id), isA=p.abono&&p.abono.id===s.id;
+    return '<tr class="'+(isL?'sel-liq':isA?'sel-abo':'')+'"><td data-l="Liquidar"><input type="checkbox" class="chk" data-asis="'+esc(s.id)+'"'+(isL?' checked':'')+' aria-label="Liquidar"></td>'+
+      '<td class="persona" data-l="Préstamo"><b>'+esc(s.L.persona)+'</b><small>'+esc(loanLabel(s.L))+'</small></td>'+
+      '<td class="num" data-l="Tasa">'+r2(s.tasa)+'%</td><td class="num" data-l="Saldo">'+money(s.saldo)+'</td>'+
+      '<td class="num" data-l="Pago para liquidar"><b>'+money(s.pago)+'</b></td><td class="num" data-l="Interés futuro evitado">'+money(s.ahorro)+'</td>'+
+      '<td class="num" data-l="Ahorro por $100">'+money(s.pago>0?s.ahorro/s.pago*100:0)+'</td>'+
+      '<td data-l="Sugerencia">'+(isL?'<span class="badge b-liquidado">Liquidar</span>':isA?'<span class="badge b-abono">Abono '+money(p.abono.monto)+'</span>':'<span class="badge b-vigente">Quedarse</span>')+'</td></tr>';}).join("");
+  const abOpts='<option value="auto"'+(a.abono==="auto"?' selected':'')+'>Automático (mejor opción)</option><option value="none"'+(a.abono==="none"?' selected':'')+'>Sin abono</option>'+
+    p.sits.filter(s=>s.abonable&&!p.chosen.has(s.id)).map(s=>'<option value="'+esc(s.id)+'"'+(a.abono===s.id?' selected':'')+'>'+esc(s.L.persona)+' · '+esc(loanLabel(s.L))+'</option>').join("");
+  let html='<div class="cards asis-cards">'+
+    card("main","Monto disponible",money(p.monto))+card("","Usado",money(p.usado),p.liq.length+" liquidación(es)"+(p.abono?" + 1 abono":""))+card(p.sobrante>=0.01?"warn":"","Sobrante",money(p.sobrante))+card("ok","Interés ahorrado",money(p.ahorro),"interés futuro que deja de generarse")+'</div>'+
+    (p.excede?'<div class="warnbox">La selección supera el monto disponible en '+money(p.excede)+'. Quita algún préstamo o aumenta el monto.</div>':'')+
+    '<div class="asis-grid" style="margin-top:14px"><div class="panel"><h2>Sugerencias'+(a.sel?' <span class="badge b-interes">personalizada</span>':' <span class="badge b-pagado">óptima</span>')+'</h2><ul class="sug">'+sug+'</ul>'+
+    '<h2 style="margin-top:14px">Préstamos vigentes <span class="muted" style="font-weight:500">· marca o desmarca “Liquidar” para personalizar</span></h2>'+
+    '<div class="tablewrap" style="margin-top:4px"><table class="responsive asis-tbl"><thead><tr><th>Liquidar</th><th>Préstamo</th><th class="num">Tasa</th><th class="num">Saldo</th><th class="num">Para liquidar</th><th class="num">Interés evitado</th><th class="num" title="Interés evitado por cada $100 usados">Por $100</th><th>Sugerencia</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '<div class="row2"><div class="field" style="min-width:260px"><label for="aAbono">Abono con el sobrante</label><select id="aAbono">'+abOpts+'</select></div></div></div>'+
+    '<div class="panel"><h2>Te puedes quedar con</h2>'+(keep.length?'<ul class="sug keep">'+keep.map(s=>'<li><b>'+esc(s.L.persona)+'</b><br><small class="muted">'+esc(loanLabel(s.L))+' · saldo '+money(s.saldo)+' · '+r2(s.tasa)+'% · interés futuro '+money(s.ahorro)+(p.abono&&p.abono.id===s.id?' · con abono de '+money(p.abono.monto):'')+'</small></li>').join("")+'</ul>':'<div class="muted">Se liquidarían todos los préstamos vigentes.</div>')+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" id="aPrev" type="button">👁 Ver simulación</button><button class="btn pri" id="aSave" type="button"'+(p.excede||(!p.liq.length&&!p.abono)?' disabled':'')+'>Guardar</button></div>'+
+    '<p class="muted" style="margin:8px 0 0">“Ver simulación” no guarda nada. “Guardar” aplica las liquidaciones/abono con fecha de hoy ('+fmtDate(HOY)+'); se pueden deshacer desde la tabla de cada préstamo.</p></div></div>';
+  if(a.preview) html+=renderPreview(p);
+  out.innerHTML=html;
+}
+function miniTabla(L,desde){
+  const rows=L.cuotas.slice(desde);
+  return '<table class="responsive"><thead><tr><th>Nº</th><th>Fecha</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th><th>Estado</th></tr></thead><tbody>'+
+    rows.map(c=>{const e=estadoDe(c);return '<tr class="is-'+e+'"><td data-l="Nº">'+c.n+'</td><td data-l="Fecha">'+fmtDate(c.fecha)+'</td><td class="num" data-l="Saldo inicial">'+money(c.saldoIni)+'</td><td class="num" data-l="Capital">'+money(c.capital)+'</td><td class="num" data-l="Interés">'+money(c.interes)+'</td><td class="num" data-l="Cuota"><b>'+money(cuotaTotal(c))+'</b></td><td class="num" data-l="Saldo final">'+money(c.saldoFin)+'</td><td data-l="Estado"><span class="badge b-'+e+'">'+ESTADO_LABEL[e]+'</span></td></tr>';}).join("")+'</tbody></table>';
+}
+function renderPreview(p){
+  const copia=clone(state.loans), res=aplicarPlan(copia,p), antes=totalesCartera(state.loans), desp=totalesCartera(copia);
+  const firstUnpaid=L=>{const i=L.cuotas.findIndex(c=>!c.pagado);return i<0?L.cuotas.length:i;};
+  let h='<div class="panel" style="margin-top:14px" id="aPreview"><div class="preview-banner">👁 Vista previa — no guardado <span class="spacer"></span><button class="btn sm" id="aPrevClose" type="button">Cerrar vista previa</button></div>'+
+    '<div class="cmp">'+
+      '<div class="card"><div class="l">Capital por recuperar</div><div class="v">'+money(desp.saldo)+'</div><div class="s">antes <b>'+money(antes.saldo)+'</b></div></div>'+
+      '<div class="card"><div class="l">Interés futuro pendiente</div><div class="v">'+money(desp.interes)+'</div><div class="s">antes <b>'+money(antes.interes)+'</b> · ahorro '+money(antes.interes-desp.interes)+'</div></div>'+
+      '<div class="card"><div class="l">Cuotas pendientes</div><div class="v">'+desp.pend+'</div><div class="s">antes <b>'+antes.pend+'</b></div></div>'+
+      '<div class="card"><div class="l">Préstamos vigentes</div><div class="v">'+copia.filter(L=>L.cuotas.some(c=>!c.pagado)).length+'</div><div class="s">antes <b>'+state.loans.filter(L=>L.cuotas.some(c=>!c.pagado)).length+'</b></div></div>'+
+    '</div>';
+  res.forEach(x=>{const orig=state.loans.find(L=>L.id===x.L.id), d=firstUnpaid(orig);
+    h+='<div class="prev-loan"><h4>'+(x.tipo==="liq"?'Liquidar ':'Abono extra a ')+esc(x.L.persona)+' · '+esc(loanLabel(x.L))+'</h4>'+
+      '<div class="muted" style="margin-bottom:6px">'+(x.tipo==="liq"?'Se cobra '+money(x.r.pago)+' hoy; interés futuro evitado '+money(x.r.ahorro)+'. Fecha fin: '+fmtDate(HOY)+' (antes '+fmtDate(orig.cuotas[orig.cuotas.length-1].fecha)+').':'Abono de '+money(x.r.monto)+' hoy; interés futuro evitado '+money(x.r.ahorro)+'. Fecha fin: '+fmtDate(x.L.cuotas[x.L.cuotas.length-1].fecha)+' (antes '+fmtDate(orig.cuotas[orig.cuotas.length-1].fecha)+').')+'</div>'+
+      '<div class="asis-grid" style="grid-template-columns:1fr 1fr"><div><b class="muted">Antes</b>'+miniTabla(orig,d)+'</div><div><b class="muted">Después</b>'+miniTabla(x.L,d)+'</div></div></div>';});
+  return h+'</div>';
+}
+function guardarPlan(){
+  const p=planActual(); if(!p||p.excede||(!p.liq.length&&!p.abono)) return;
+  const txt=p.liq.map(s=>"• Liquidar "+s.L.persona+": "+money(s.pago)).concat(p.abono?["• Abono extra a "+p.abono.s.L.persona+": "+money(p.abono.monto)]:[]).join("\n");
+  if(!confirm("¿Guardar estos cambios con fecha de hoy ("+fmtDate(HOY)+")?\n\n"+txt+"\n\nTotal usado: "+money(p.usado)+" · Interés ahorrado: "+money(p.ahorro)+"\n\nSe pueden deshacer desde la tabla de cada préstamo (↺ Deshacer liquidación / abono).")) return;
+  const res=aplicarPlan(state.loans,p);
+  ui.asis={monto:null,sel:null,abono:"auto",preview:false}; const mi=$("#aMonto"); if(mi) mi.value="";
+  saveAndPush(); renderAll();
+  toast("Guardado: "+res.length+" operación(es) · interés ahorrado "+money(p.ahorro));
+}
+function saveAndPush(){save(); if(typeof pushNow==="function") pushNow();}
+
 /* ---------- acciones ---------- */
 function findCuota(k){const i=k.lastIndexOf("|");const id=k.slice(0,i),n=+k.slice(i+1);const L=state.loans.find(x=>x.id===id);return L?{L,c:L.cuotas.find(c=>c.n===n)}:null;}
 function setPagado(k,val){if(val)pagarCompleto(k);else deshacer(k);}
 function setFechaPago(k,v){const f=findCuota(k); if(!f||!f.c) return; f.c.fechaPagoReal=v||null; f.c.asumido=false; save(); toast("Fecha de pago actualizada: "+(v?fmtDate(v):"sin fecha"));}
 function showTab(t){ui.tab=t;document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
-  ["cuotas","resumen","prestamos"].forEach(x=>{$("#tab-"+x).hidden=(x!==t);});}
+  ["cuotas","resumen","prestamos","asistente"].forEach(x=>{$("#tab-"+x).hidden=(x!==t);});}
 let toastT=null;
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2600);}
 function download(name,content,type){const b=new Blob([content],{type});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
@@ -959,7 +1214,7 @@ function bind(){
   $("#fQ").addEventListener("input",e=>{ui.q=e.target.value;renderCuotas();});
   $("#fEstado").addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;const v=b.dataset.e;
     if(!v) ui.estados.clear(); else if(ui.estados.has(v)) ui.estados.delete(v); else ui.estados.add(v);
-    if(ui.estados.size===3) ui.estados.clear(); renderFilterOptions(); renderCuotas();});
+    if(ui.estados.size===5) ui.estados.clear(); renderFilterOptions(); renderCuotas();});
   document.querySelector(".quick").addEventListener("click",e=>{const b=e.target.closest("[data-q]");if(!b)return;const q=b.dataset.q;
     if(q==="este"){ui.mes=monthKey(HOY);ui.estados.clear();}
     else if(q==="proximo"){ui.mes=addMonthsKey(monthKey(HOY),1);ui.estados.clear();}
@@ -997,6 +1252,19 @@ function bind(){
     const tr=e.target.closest("tr[data-toggle]"); if(tr){const id=tr.dataset.toggle; ui.open.has(id)?ui.open.delete(id):ui.open.add(id); renderPrestamos();}
   });
   $("#lEstado").addEventListener("change",e=>{ui.lEstado=e.target.value;renderPrestamos();});
+  const calcAsis=()=>{const v=parseFloat($("#aMonto").value);if(!(v>0)){toast("Escribe un monto mayor a 0");return;}ui.asis.monto=r2(v);ui.asis.sel=null;ui.asis.preview=false;renderAsistente();};
+  $("#aCalc").addEventListener("click",calcAsis);
+  $("#aMonto").addEventListener("keydown",e=>{if(e.key==="Enter")calcAsis();});
+  $("#aReset").addEventListener("click",()=>{ui.asis.sel=null;ui.asis.abono="auto";renderAsistente();});
+  $("#aOut").addEventListener("change",e=>{
+    if(e.target.matches("[data-asis]")){const p=planActual();const s=new Set(p.chosen);e.target.checked?s.add(e.target.dataset.asis):s.delete(e.target.dataset.asis);ui.asis.sel=s;renderAsistente();}
+    else if(e.target.id==="aAbono"){ui.asis.abono=e.target.value;renderAsistente();}
+  });
+  $("#aOut").addEventListener("click",e=>{
+    if(e.target.closest("#aPrev")){ui.asis.preview=true;renderAsistente();const el=$("#aPreview");if(el)el.scrollIntoView({behavior:"smooth",block:"start"});}
+    else if(e.target.closest("#aPrevClose")){ui.asis.preview=false;renderAsistente();}
+    else if(e.target.closest("#aSave")) guardarPlan();
+  });
   $("#lPersona").addEventListener("change",e=>{ui.lPersona=e.target.value;renderPrestamos();});
   $("#btnNuevo").addEventListener("click",()=>openForm(null));
   $("#mClose").addEventListener("click",closeForm); $("#mCancel").addEventListener("click",closeForm);
@@ -1022,25 +1290,29 @@ function bind(){
     rd.readAsText(file);});
   $("#btnSync").addEventListener("click",async()=>{const ok=await syncFromRemote();if(ok)toast("Datos sincronizados con GitHub");});
   $("#btnSettings").addEventListener("click",openSettings);
-  $("#syncStatus").addEventListener("click",()=>{if(sync.dirty)push();else openSettings();});
+  $("#btnSave").addEventListener("click",pushNow);
+  $("#autoSave").addEventListener("change",e=>setAutoSave(e.target.checked));
+  $("#sAuto").addEventListener("change",e=>setAutoSave(e.target.checked));
+  $("#syncStatus").addEventListener("click",()=>{if(sync.dirty)pushNow();else openSettings();});
   $("#sClose").addEventListener("click",()=>$("#setBg").classList.remove("show"));
   $("#setBg").addEventListener("click",e=>{if(e.target.id==="setBg")$("#setBg").classList.remove("show");});
   $("#sSync").addEventListener("click",async()=>{$("#setBg").classList.remove("show");const ok=await syncFromRemote();if(ok)toast("Datos sincronizados con GitHub");});
   $("#sDisconnect").addEventListener("click",disconnect);
   $("#cGo").addEventListener("click",connect);
   $("#cToken").addEventListener("keydown",e=>{if(e.key==="Enter")connect();});
-  window.addEventListener("online",()=>{if(sync.dirty&&getToken())push();});
+  window.addEventListener("online",()=>{if(sync.dirty&&getToken()&&autoSave())push();});
   document.addEventListener("visibilitychange",()=>{ // al volver a la app, trae lo último de GitHub (si no hay cambios pendientes)
     if(document.visibilityState==="visible"&&getToken()&&!sync.dirty&&!sync.busy&&$("#connect").hidden&&(!sync.lastOk||Date.now()-new Date(sync.lastOk).getTime()>30000)) syncFromRemote();});
   window.addEventListener("beforeunload",e=>{if(sync.dirty||sync.busy){e.preventDefault();e.returnValue="";}});
 }
 (function start(){
   const c=readCache(); if(c){state=c.state; sync.sha=c.sha||null; sync.base=c.base||null; sync.dirty=!!c.dirty; sync.lastOk=c.lastOk||null;}
-  bind(); renderAll();
+  bind(); renderAll(); updateSaveUI();
   if(!getToken()){showConnect();return;}
+  if(sync.dirty&&!autoSave()) setStatus("local");
   syncFromRemote();
 })();
-window.__app={pagarSoloInteres,pagarCompleto,deshacer,sync,push,syncFromRemote,GH_OWNER,GH_REPO,SEED_VERSION,state:()=>state,ui,HOY,filteredRows,sumRows,monthlySummary,loanStats,generarCuotas,renderAll,buildCsv};
+window.__app={calcularPlan,situacion,aplicarLiquidacion,aplicarAbono,totalesCartera,ahorroAbono,pagarSoloInteres,pagarCompleto,deshacer,sync,push,pushNow,syncFromRemote,setAutoSave,autoSave,GH_OWNER,GH_REPO,SEED_VERSION,state:()=>state,ui,HOY,filteredRows,sumRows,monthlySummary,loanStats,generarCuotas,renderAll,buildCsv};
 </script>
 </body>
 </html>
