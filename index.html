@@ -375,7 +375,7 @@ function addMonthsISO(iso,n){
   const last=new Date(yy,mm+1,0).getDate();
   return yy+"-"+pad(mm+1)+"-"+pad(Math.min(d,last));
 }
-function shortName(n){const t=String(n||"").trim().split(/\s+/);return t.length>=4?t[0]+" "+t[2]:t.length===3?t[0]+" "+t[1]:String(n||"");}
+function shortName(n){if(/[()]/.test(String(n||"")))return String(n).trim();const t=String(n||"").trim().split(/\s+/);return t.length>=4?t[0]+" "+t[2]:t.length===3?t[0]+" "+t[1]:String(n||"");}
 function cuotaTotal(c){return r2(c.capital+c.interes);}
 function estadoDe(c){return c.pagado?"pagado":(c.fecha<HOY?"vencido":"porvencer");}
 
