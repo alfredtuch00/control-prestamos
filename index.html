@@ -52,6 +52,7 @@ main{max-width:1280px;margin:0 auto;padding:16px 20px 40px}
 .chip.on.c-pagado{background:var(--ok);border-color:var(--ok)}
 .chip.on.c-porvencer{background:var(--warn);border-color:var(--warn)}
 .chip.on.c-vencido{background:var(--bad);border-color:var(--bad)}
+.chip.on.c-interes{background:#5b6b82;border-color:#5b6b82}
 .spacer{flex:1}
 .quick{display:flex;gap:6px;flex-wrap:wrap}
 .cards{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;margin-top:14px}
@@ -74,6 +75,20 @@ tr.clickable{cursor:pointer}
 .b-pagado{background:var(--ok-soft);color:var(--ok)}
 .b-porvencer{background:var(--warn-soft);color:var(--warn)}
 .b-vencido{background:var(--bad-soft);color:var(--bad)}
+.b-interes{background:#e6ebf2;color:#46566d}
+tr.is-interes td{color:#55606f}
+.ext{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:999px;background:#e6ebf2;color:#46566d;font-size:11px;font-weight:700;white-space:nowrap}
+.abono-menu{position:fixed;z-index:80;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(16,24,40,.18);padding:6px;min-width:240px;max-width:92vw}
+.abono-menu[hidden]{display:none}
+.abono-menu .hd{font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:6px 8px 4px}
+.abono-menu button{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:transparent;padding:9px 10px;border-radius:8px;cursor:pointer;font-weight:600}
+.abono-menu button:hover:not(:disabled){background:#f3f4f6}
+.abono-menu button:disabled{opacity:.5;cursor:not-allowed}
+.abono-menu button small{display:block;font-weight:500;color:var(--muted);font-size:11.5px;margin-top:1px}
+.abono-menu button b{white-space:nowrap}
+.abono-menu .note2{font-size:11.5px;color:var(--muted);padding:4px 10px 6px}
+.btn.abonar{background:var(--pri);border-color:var(--pri);color:#fff}.btn.abonar:hover{background:var(--pri2)}
+.btn.undo{color:var(--muted)}
 .b-vigente{background:var(--pri-soft);color:var(--pri)}
 .persona b{display:block}
 .persona small,.muted{color:var(--muted);font-size:12px}
@@ -139,6 +154,7 @@ input.paydate{padding:4px 6px;border:1px solid var(--line);border-radius:6px;fon
   table.responsive thead{display:none}
   table.responsive, table.responsive tbody, table.responsive tr, table.responsive td{display:block;width:100%}
   table.responsive tr{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;background:#fff;padding:6px 4px;box-shadow:var(--shadow)}
+  table.responsive tr.total td.blank{display:none}
   table.responsive tr.total{border-top:2px solid var(--pri)}
   table.responsive td{border:0;padding:5px 10px;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:right}
   table.responsive td.num{text-align:right}
@@ -210,6 +226,7 @@ a.btn{color:inherit;text-decoration:none}
           <button class="chip c-pagado" data-e="pagado">Pagado</button>
           <button class="chip c-porvencer" data-e="porvencer">Por vencer</button>
           <button class="chip c-vencido" data-e="vencido">Vencido</button>
+          <button class="chip c-interes" data-e="interes">Solo interés</button>
         </div>
         <div class="spacer"></div>
         <div class="quick">
@@ -310,6 +327,7 @@ a.btn{color:inherit;text-decoration:none}
     </footer>
   </div>
 </div>
+<div class="abono-menu" id="abonoMenu" hidden></div>
 <div class="connect" id="connect" hidden>
   <div class="connect-card" role="dialog" aria-modal="true" aria-labelledby="cTitle">
     <div class="hd"><h2 id="cTitle">Conectar</h2><p>Control de Préstamos Personales</p></div>
@@ -349,7 +367,7 @@ const GH_BRANCH = "main";
 const LS_KEY    = "controlPrestamos.cache.v2"; // copia local (offline) de los datos
 const LS_TOKEN  = "controlPrestamos.ghToken";  // token guardado solo en este dispositivo
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-const ESTADO_LABEL = {pagado:"Pagado", porvencer:"Por vencer", vencido:"Vencido"};
+const ESTADO_LABEL = {pagado:"Pagado", interes:"Solo interés", porvencer:"Por vencer", vencido:"Vencido"};
 
 /* ---------- utilidades ---------- */
 const pad = n => String(n).padStart(2,"0");
@@ -377,7 +395,10 @@ function addMonthsISO(iso,n){
 }
 function shortName(n){if(/[()]/.test(String(n||"")))return String(n).trim();const t=String(n||"").trim().split(/\s+/);return t.length>=4?t[0]+" "+t[2]:t.length===3?t[0]+" "+t[1]:String(n||"");}
 function cuotaTotal(c){return r2(c.capital+c.interes);}
-function estadoDe(c){return c.pagado?"pagado":(c.fecha<HOY?"vencido":"porvencer");}
+/* Cuota pagada solo con interés: tipo="interes" (capital 0, saldo sin cambio; el capital aplazado pasa a la cuota siguiente). */
+const esSoloInteres = c => !!c.pagado && c.tipo==="interes";
+function estadoDe(c){return c.pagado?(c.tipo==="interes"?"interes":"pagado"):(c.fecha<HOY?"vencido":"porvencer");}
+const cobrada = e => e==="pagado"||e==="interes";
 
 /* ---------- generación de tabla (mismo método de los PDF) ---------- */
 function generarCuotas(capital,tasa,meses,primera){
@@ -396,10 +417,10 @@ function generarCuotas(capital,tasa,meses,primera){
 /* ---------- estado / persistencia (GitHub + caché local) ---------- */
 const SEED_VERSION = 2;
 let state = {version:1, seedVersion:SEED_VERSION, loans:[]};
-const sync = {sha:null, dirty:false, rev:0, busy:false, again:false, timer:null, kind:"", lastOk:null};
+const sync = {sha:null, base:null, dirty:false, rev:0, busy:false, again:false, timer:null, kind:"", lastOk:null};
 function getToken(){try{return localStorage.getItem(LS_TOKEN)||"";}catch(e){return "";}}
 function readCache(){try{const c=JSON.parse(localStorage.getItem(LS_KEY)||"null"); if(c&&c.state&&Array.isArray(c.state.loans)) return c;}catch(e){console.warn(e);} return null;}
-function writeCache(){try{localStorage.setItem(LS_KEY,JSON.stringify({state,sha:sync.sha,dirty:sync.dirty,lastOk:sync.lastOk}));}catch(e){console.warn(e);}}
+function writeCache(){try{localStorage.setItem(LS_KEY,JSON.stringify({state,sha:sync.sha,base:sync.base,dirty:sync.dirty,lastOk:sync.lastOk}));}catch(e){console.warn(e);}}
 function b64encode(str){const by=new TextEncoder().encode(str);let bin="";for(let i=0;i<by.length;i+=0x8000)bin+=String.fromCharCode.apply(null,by.subarray(i,i+0x8000));return btoa(bin);}
 function b64decode(b64){const bin=atob(String(b64||"").replace(/\s/g,""));const by=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)by[i]=bin.charCodeAt(i);return new TextDecoder("utf-8").decode(by);}
 const GH_API="https://api.github.com/repos/"+encodeURIComponent(GH_OWNER)+"/"+encodeURIComponent(GH_REPO);
@@ -436,23 +457,56 @@ function setStatus(kind,msg){
     offline:["warn","Sin conexión · guardado aquí"],error:["err","Error al guardar"],nocon:["warn","Sin conectar"]};
   const m=M[kind]||["busy",kind]; el.className="sync "+m[0]; el.textContent=m[1]; el.title=msg||m[1];
 }
-/* Sube el estado completo a GitHub (PUT con sha). Conflictos 409/422: vuelve a leer el sha y reintenta. */
+/* Fusión a nivel de préstamo entre la última versión sincronizada (base), los cambios de este dispositivo (local)
+   y lo que hay ahora en GitHub (remoto). Nunca se pisan cambios hechos en otro dispositivo: si el mismo préstamo
+   cambió en ambos lados, se conserva la versión de GitHub y se avisa. */
+function mergeLoans(baseArr, localArr, remoteArr){
+  const J=x=>JSON.stringify(x), B=new Map(baseArr.map(l=>[l.id,J(l)])), Lm=new Map(localArr.map(l=>[l.id,l])), R=new Set(remoteArr.map(l=>l.id));
+  const out=[], conflicts=[];
+  for(const r of remoteArr){
+    const b=B.get(r.id), l=Lm.get(r.id), rs=J(r);
+    if(!l){ if(b===undefined||rs!==b) out.push(r); continue; }       // nuevo en remoto, o borrado aquí pero cambiado allá → se conserva
+    const ls=J(l);
+    if(ls===b||ls===rs) out.push(r);                                  // sin cambio local
+    else if(rs===b) out.push(l);                                      // solo cambió aquí
+    else { out.push(r); conflicts.push(l); }                          // cambió en ambos lados → gana GitHub
+  }
+  for(const l of localArr){ if(R.has(l.id)) continue; const b=B.get(l.id); if(b===undefined||J(l)!==b) out.push(l); }
+  return {loans:out, conflicts};
+}
+/* Sube el estado a GitHub (PUT con sha). Si GitHub responde 409/422 (el archivo cambió en otro dispositivo),
+   vuelve a leer la última versión, fusiona los cambios de este dispositivo encima y reintenta. */
 async function push(){
   if(!getToken()){setStatus("nocon");return;}
   if(sync.busy){sync.again=true;return;}
   sync.busy=true; setStatus("saving");
-  const revAtStart=sync.rev; let ok=false, errMsg="";
+  let revAtStart=sync.rev, ok=false, errMsg="", conflicts=[];
   try{
-    for(let attempt=0;attempt<4&&!ok;attempt++){
+    for(let attempt=0;attempt<5&&!ok;attempt++){
+      const sentLoans=JSON.stringify(state.loans);
       const body={message:"Actualizar préstamos · "+new Date().toLocaleString("es-EC"),content:b64encode(serialize()),branch:GH_BRANCH};
       if(sync.sha) body.sha=sync.sha;
       const r=await ghFetch(GH_API+"/contents/"+GH_PATH.split("/").map(encodeURIComponent).join("/"),{method:"PUT",body:JSON.stringify(body)});
-      if(r.status===200||r.status===201){sync.sha=r.data.content.sha;ok=true;break;}
-      if(r.status===409||r.status===422||r.status===404){const rem=await fetchRemote();sync.sha=rem.sha;continue;}
+      if(r.status===200||r.status===201){sync.sha=r.data.content.sha;sync.base=sentLoans;ok=true;break;}
+      if(r.status===409||r.status===422||r.status===404){
+        const rem=await fetchRemote();
+        if(rem.doc){
+          const remoteLoans=validLoans(rem.doc)||[];
+          const baseLoans=sync.base?JSON.parse(sync.base):remoteLoans;   // sin base conocida: no se asume nada sobre GitHub
+          const m=sync.base?mergeLoans(baseLoans,state.loans,remoteLoans):{loans:remoteLoans,conflicts:state.loans.filter(l=>JSON.stringify(l)!==JSON.stringify(remoteLoans.find(x=>x.id===l.id)))};
+          conflicts=conflicts.concat(m.conflicts);
+          state.loans=m.loans; sync.base=JSON.stringify(remoteLoans); sync.sha=rem.sha;
+          if(JSON.stringify(state.loans)===sync.base){ok=true;break;}       // nada propio que subir
+          renderAll();
+        } else { sync.sha=null; }
+        await new Promise(res=>setTimeout(res,300*(attempt+1)));
+        continue;
+      }
       if(r.status===401||r.status===403){errMsg="El token no tiene permiso para guardar.";break;}
       errMsg="GitHub respondió HTTP "+r.status+(r.data&&r.data.message?": "+r.data.message:"");break;
     }
-    if(ok){sync.dirty=(sync.rev!==revAtStart);sync.lastOk=new Date().toISOString();writeCache();setStatus(sync.dirty?"pending":"saved");}
+    if(ok){sync.dirty=(sync.rev!==revAtStart);sync.lastOk=new Date().toISOString();writeCache();renderAll();setStatus(sync.dirty?"pending":"saved");
+      if(conflicts.length) toast("Otro dispositivo cambió al mismo tiempo: "+[...new Set(conflicts.map(l=>shortName(l.persona)))].join(", ")+". Se conservó su versión; revisa y vuelve a registrar tu cambio.");}
     else {setStatus("error",errMsg||"No se pudo guardar por conflictos repetidos. Toca para reintentar.");}
   }catch(e){
     if(e.auth) setStatus("error",e.message); else setStatus("offline","Sin conexión con GitHub. Los cambios quedan en este dispositivo y se subirán al reconectar.");
@@ -482,7 +536,7 @@ async function syncFromRemote(){
   try{
     const r=await fetchRemote();
     if(r.doc) applyDoc(r.doc);
-    sync.sha=r.sha; sync.dirty=false; sync.lastOk=new Date().toISOString(); writeCache(); renderAll(); setStatus("synced");
+    sync.sha=r.sha; sync.base=r.doc?JSON.stringify(state.loans):null; sync.dirty=false; sync.lastOk=new Date().toISOString(); writeCache(); renderAll(); setStatus("synced");
     if(!r.doc) toast("Aún no existe "+GH_PATH+" en el repositorio; se creará con el primer cambio.");
     return true;
   }catch(e){
@@ -498,7 +552,7 @@ async function connect(){
     const r=await fetchRemote(tok);
     localStorage.setItem(LS_TOKEN,tok);
     if(r.doc) applyDoc(r.doc);
-    sync.sha=r.sha; sync.dirty=false; sync.lastOk=new Date().toISOString(); writeCache();
+    sync.sha=r.sha; sync.base=r.doc?JSON.stringify(state.loans):null; sync.dirty=false; sync.lastOk=new Date().toISOString(); writeCache();
     $("#connect").hidden=true; $("#cToken").value=""; renderAll(); setStatus("synced");
     toast(r.doc?"Conectado · "+state.loans.length+" préstamos cargados":"Conectado · el archivo de datos se creará con el primer cambio");
   }catch(e){$("#cErr").textContent=e.auth?e.message:"No se pudo conectar con GitHub ("+e.message+"). Revisa tu internet.";}
@@ -518,7 +572,7 @@ function disconnect(){
   const warn=(sync.dirty||sync.busy)?"\n\nATENCIÓN: hay cambios que todavía no se subieron a GitHub y se perderán.":"";
   if(!confirm("¿Desconectar este dispositivo?\nSe borrará el token y la copia local de los datos en este navegador. Los datos siguen en GitHub."+warn)) return;
   try{localStorage.removeItem(LS_TOKEN);localStorage.removeItem(LS_KEY);}catch(e){}
-  clearTimeout(sync.timer); Object.assign(sync,{sha:null,dirty:false,rev:0,again:false,lastOk:null});
+  clearTimeout(sync.timer); Object.assign(sync,{sha:null,base:null,dirty:false,rev:0,again:false,lastOk:null});
   state={version:1,seedVersion:SEED_VERSION,loans:[]}; ui.open.clear(); ui.cuotaEdit=null;
   $("#setBg").classList.remove("show"); renderAll(); showConnect(); toast("Dispositivo desconectado");
 }
@@ -530,7 +584,9 @@ function loanStats(L){
   const pagadas=L.cuotas.filter(c=>c.pagado).length;
   const vencidas=L.cuotas.filter(c=>estadoDe(c)==="vencido").length;
   const fin=L.cuotas.length?L.cuotas[L.cuotas.length-1].fecha:"";
-  return {saldo:r2(L.capital-pagadoCap), interes:r2(interes), pagadas, total:L.cuotas.length, vencidas, fin, estado: pagadas===L.cuotas.length?"pagado":"vigente"};
+  const ext=L.cuotas.filter(esSoloInteres).length, n=L.cuotas.length;
+  const finOrig=ext&&n-1-ext>=0?L.cuotas[n-1-ext].fecha:fin;
+  return {saldo:r2(L.capital-pagadoCap), interes:r2(interes), pagadas, total:n, vencidas, fin, ext, plazoOrig:n-ext, finOrig, estado: pagadas===n?"pagado":"vigente"};
 }
 function loanLabel(L){return money(L.capital)+" · "+fmtDate(L.transferencia);}
 function allRows(){
@@ -553,10 +609,10 @@ function filteredRows(){
   });
 }
 function sumRows(rows){
-  const s={n:rows.length,total:0,capital:0,interes:0,cobrado:0,pendiente:0,porvencer:0,vencido:0,nPag:0,nVen:0,nPor:0};
+  const s={n:rows.length,total:0,capital:0,interes:0,cobrado:0,pendiente:0,porvencer:0,vencido:0,nPag:0,nVen:0,nPor:0,nInt:0,soloInteres:0};
   rows.forEach(r=>{s.total+=r.total;s.capital+=r.c.capital;s.interes+=r.c.interes;
-    if(r.estado==="pagado"){s.cobrado+=r.total;s.nPag++;} else {s.pendiente+=r.total; if(r.estado==="vencido"){s.vencido+=r.total;s.nVen++;} else {s.porvencer+=r.total;s.nPor++;}}});
-  for(const k of ["total","capital","interes","cobrado","pendiente","porvencer","vencido"]) s[k]=r2(s[k]);
+    if(cobrada(r.estado)){s.cobrado+=r.total;s.nPag++;if(r.estado==="interes"){s.nInt++;s.soloInteres+=r.total;}} else {s.pendiente+=r.total; if(r.estado==="vencido"){s.vencido+=r.total;s.nVen++;} else {s.porvencer+=r.total;s.nPor++;}}});
+  for(const k of ["total","capital","interes","cobrado","pendiente","porvencer","vencido","soloInteres"]) s[k]=r2(s[k]);
   return s;
 }
 function personas(){return [...new Set(state.loans.map(L=>L.persona))].sort((a,b)=>a.localeCompare(b));}
@@ -569,7 +625,7 @@ function renderKpis(){
   const saldo=r2(st.reduce((a,s)=>a+s.saldo,0));
   const rows=allRows(); const ven=rows.filter(r=>r.estado==="vencido");
   const mes=rows.filter(r=>monthKey(r.c.fecha)===monthKey(HOY));
-  const mesPend=r2(mes.filter(r=>r.estado!=="pagado").reduce((a,r)=>a+r.total,0));
+  const mesPend=r2(mes.filter(r=>!cobrada(r.estado)).reduce((a,r)=>a+r.total,0));
   $("#kpis").innerHTML=
     kpi("Préstamos vigentes",vig+" de "+state.loans.length)+
     kpi("Capital por recuperar",money(saldo))+
@@ -599,7 +655,7 @@ function renderCuotas(){
     card("main","Total a cobrar",money(s.total),"capital + interés")+
     card("","Capital",money(s.capital))+
     card("","Interés",money(s.interes))+
-    card("ok","Cobrado",money(s.cobrado),s.nPag+" cuota(s)")+
+    card("ok","Cobrado",money(s.cobrado),s.nPag+" cuota(s)"+(s.nInt?" · "+s.nInt+" solo interés":""))+
     card("warn","Por vencer",money(s.porvencer),s.nPor+" cuota(s)")+
     card("bad","Vencido",money(s.vencido),s.nVen+" cuota(s)")+
     card("","Nº cuotas",String(s.n),s.nPag+" pagadas · "+(s.n-s.nPag)+" pendientes");
@@ -607,13 +663,17 @@ function renderCuotas(){
   if(ui.estados.size) t+=" · "+[...ui.estados].map(e=>ESTADO_LABEL[e]).join(", ");
   if(ui.persona) t+=" · "+shortName(ui.persona);
   $("#cuotasTitle").textContent=t;
+  /* Total “Saldo después”: por cada préstamo mostrado, el saldo tras su última cuota visible (las filas están ordenadas por fecha). */
+  const lastByLoan=new Map(); rows.forEach(r=>lastByLoan.set(r.L.id,r.c.saldoFin));
+  const saldoTot=r2([...lastByLoan.values()].reduce((a,v)=>a+v,0));
+  const saldoTip="Capital pendiente de los "+lastByLoan.size+" préstamo(s) mostrados después de su última cuota visible (suma del último “saldo después” de cada préstamo).";
   const tb=$("#tblCuotas tbody");
   if(!rows.length){tb.innerHTML='<tr><td colspan="10" class="empty">No hay cuotas con estos filtros.</td></tr>';return;}
   tb.innerHTML=rows.map(r=>{
     const {L,c}=r, k=L.id+"|"+c.n;
     return '<tr class="is-'+r.estado+'">'+
       '<td class="persona" data-l="Persona"><b title="'+esc(L.persona)+'">'+esc(shortName(L.persona))+'</b><small>C.I. '+esc(L.cedula||"—")+'</small></td>'+
-      '<td data-l="Préstamo">'+esc(loanLabel(L))+'</td>'+
+      '<td data-l="Préstamo">'+esc(loanLabel(L))+(function(){const e=L.cuotas.filter(esSoloInteres).length;return e?'<span class="ext" title="Plazo original '+(L.cuotas.length-e)+' meses, actual '+L.cuotas.length+' por pagos de solo interés">+'+e+' mes'+(e>1?'es':'')+'</span>':'';})()+'</td>'+
       '<td data-l="Cuota">'+c.n+'/'+L.cuotas.length+'</td>'+
       '<td data-l="Fecha de pago">'+fmtDate(c.fecha)+'</td>'+
       '<td class="num" data-l="Capital">'+money(c.capital)+'</td>'+
@@ -621,13 +681,10 @@ function renderCuotas(){
       '<td class="num" data-l="Cuota"><b>'+money(r.total)+'</b></td>'+
       '<td class="num" data-l="Saldo después">'+money(c.saldoFin)+'</td>'+
       '<td data-l="Estado"><span class="badge b-'+r.estado+'">'+ESTADO_LABEL[r.estado]+'</span></td>'+
-      '<td data-l="Cobro"><div class="paybox">'+
-        '<label class="switch"><input type="checkbox" class="tgl" data-k="'+esc(k)+'"'+(c.pagado?" checked":"")+'><span class="t"></span><span>'+(c.pagado?"Pagado":"Pendiente")+'</span></label>'+
-        (c.pagado?'<input type="date" class="paydate" data-k="'+esc(k)+'" value="'+esc(c.fechaPagoReal||"")+'" title="Fecha real de pago'+(c.asumido?' (asumida)':'')+'">':'')+
-      '</div></td></tr>';
+      '<td data-l="Cobro">'+cobroCell(L,c)+'</td></tr>';
   }).join("")+
   '<tr class="total"><td class="persona" data-l="">Total ('+s.n+' cuotas)</td><td data-l="" class="hide-m"></td><td data-l=""></td><td data-l=""></td>'+
-  '<td class="num" data-l="Capital">'+money(s.capital)+'</td><td class="num" data-l="Interés">'+money(s.interes)+'</td><td class="num" data-l="Cuota">'+money(s.total)+'</td><td data-l=""></td>'+
+  '<td class="num" data-l="Capital">'+money(s.capital)+'</td><td class="num" data-l="Interés">'+money(s.interes)+'</td><td class="num" data-l="Cuota">'+money(s.total)+'</td><td class="num" data-l="Saldo después" title="'+esc(saldoTip)+'"><span style="border-bottom:1px dotted currentColor;cursor:help">'+money(saldoTot)+'</span></td>'+
   '<td data-l="Cobrado">'+money(s.cobrado)+'</td><td data-l="Pendiente">'+money(s.pendiente)+'</td></tr>';
   tb.querySelectorAll("tr.total td").forEach(td=>{if(td.dataset.l==="" && !td.classList.contains("persona")) td.classList.add("blank");});
 }
@@ -665,9 +722,9 @@ function renderPrestamos(){
       '<td data-l="Cédula">'+esc(L.cedula||"—")+'</td>'+
       '<td class="num" data-l="Capital">'+money(L.capital)+'</td>'+
       '<td class="num" data-l="Tasa">'+r2(L.tasa)+'% mensual</td>'+
-      '<td class="num" data-l="Plazo">'+L.plazo+' meses</td>'+
+      '<td class="num" data-l="Plazo">'+(s.ext?'<span title="Plazo original → actual (+'+s.ext+' por pagos de solo interés)">'+s.plazoOrig+' → <b>'+s.total+'</b> meses</span>':s.total+' meses')+'</td>'+
       '<td data-l="Transferencia">'+fmtDate(L.transferencia)+'</td>'+
-      '<td data-l="Fecha fin">'+fmtDate(s.fin)+'</td>'+
+      '<td data-l="Fecha fin">'+fmtDate(s.fin)+(s.ext?'<br><small class="muted">antes '+fmtDate(s.finOrig)+'</small>':'')+'</td>'+
       '<td class="num" data-l="Saldo capital"><b>'+money(s.saldo)+'</b></td>'+
       '<td class="num" data-l="Interés total">'+money(s.interes)+'</td>'+
       '<td data-l="Estado"><div><span class="badge '+(s.estado==="pagado"?"b-pagado":"b-vigente")+'">'+(s.estado==="pagado"?"Pagado":"Vigente")+'</span>'+
@@ -678,9 +735,10 @@ function renderPrestamos(){
       h+='<tr class="expand"><td colspan="11"><div class="inner">'+renderCuotaEditor(L)+'</div></td></tr>';
     } else if(open){
       h+='<tr class="expand"><td colspan="11"><div class="inner">'+(L.nota?'<div class="note">'+esc(L.nota)+'</div>':'')+
+        (s.ext?'<div class="note" style="background:#eef1f5;border-color:#d5dbe4;color:#3c4a5e">Plazo extendido de '+s.plazoOrig+' a '+s.total+' meses por '+s.ext+' pago(s) de solo interés. Fecha fin: '+fmtDate(s.fin)+' (antes '+fmtDate(s.finOrig)+'). Para deshacer, toca “↺ Deshacer” en la cuota de “Solo interés”.</div>':'')+
         '<div class="ce-bar"><b>Tabla de amortización</b><span class="spacer"></span><button class="btn sm" data-cedit="'+esc(L.id)+'">✎ Editar cuotas</button><button class="btn sm" data-edit="'+esc(L.id)+'">Editar préstamo</button></div>'+
         '<table class="responsive"><thead><tr><th>Nº</th><th>Fecha de pago</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th><th>Estado</th><th>Cobro</th></tr></thead><tbody>'+
-        L.cuotas.map(c=>{const e=estadoDe(c),k=L.id+"|"+c.n;return '<tr class="is-'+e+'"><td data-l="Nº">'+c.n+'</td><td data-l="Fecha de pago">'+fmtDate(c.fecha)+'</td><td class="num" data-l="Saldo inicial">'+money(c.saldoIni)+'</td><td class="num" data-l="Capital">'+money(c.capital)+'</td><td class="num" data-l="Interés">'+money(c.interes)+'</td><td class="num" data-l="Cuota"><b>'+money(cuotaTotal(c))+'</b></td><td class="num" data-l="Saldo final">'+money(c.saldoFin)+'</td><td data-l="Estado"><span class="badge b-'+e+'">'+ESTADO_LABEL[e]+'</span></td><td data-l="Cobro"><div class="paybox"><label class="switch"><input type="checkbox" class="tgl" data-k="'+esc(k)+'"'+(c.pagado?" checked":"")+'><span class="t"></span><span>'+(c.pagado?"Pagado":"Pendiente")+'</span></label>'+(c.pagado?'<input type="date" class="paydate" data-k="'+esc(k)+'" value="'+esc(c.fechaPagoReal||"")+'">':'')+'</div></td></tr>';}).join("")+
+        L.cuotas.map(c=>{const e=estadoDe(c),k=L.id+"|"+c.n;return '<tr class="is-'+e+'"><td data-l="Nº">'+c.n+'</td><td data-l="Fecha de pago">'+fmtDate(c.fecha)+'</td><td class="num" data-l="Saldo inicial">'+money(c.saldoIni)+'</td><td class="num" data-l="Capital">'+money(c.capital)+'</td><td class="num" data-l="Interés">'+money(c.interes)+'</td><td class="num" data-l="Cuota"><b>'+money(cuotaTotal(c))+'</b></td><td class="num" data-l="Saldo final">'+money(c.saldoFin)+'</td><td data-l="Estado"><span class="badge b-'+e+'">'+ESTADO_LABEL[e]+'</span>'+(esSoloInteres(c)?'<br><small class="muted">capital '+money(c.capitalAplazado||0)+' aplazado</small>':'')+'</td><td data-l="Cobro">'+cobroCell(L,c)+'</td></tr>';}).join("")+
         '<tr class="total"><td data-l="">Total</td><td data-l=""></td><td data-l=""></td><td class="num" data-l="Capital">'+money(L.cuotas.reduce((a,c)=>a+c.capital,0))+'</td><td class="num" data-l="Interés">'+money(s.interes)+'</td><td class="num" data-l="Cuota">'+money(L.cuotas.reduce((a,c)=>a+cuotaTotal(c),0))+'</td><td data-l=""></td><td data-l=""></td><td data-l=""></td></tr>'+
         '</tbody></table><p class="muted" style="margin:8px 0 0">Origen: '+esc(L.origen||"Manual")+'</p></div></td></tr>';
     }
@@ -691,7 +749,7 @@ function renderPrestamos(){
 
 /* ---------- editor de cuotas ---------- */
 function startCuotaEdit(id){const L=state.loans.find(x=>x.id===id);if(!L)return;
-  ui.cuotaEdit={id,capital:r2(L.capital),rows:L.cuotas.map(c=>({fecha:c.fecha,capital:c.capital,interes:c.interes,pagado:!!c.pagado,fechaPagoReal:c.fechaPagoReal||"",asumido:!!c.asumido}))};
+  ui.cuotaEdit={id,capital:r2(L.capital),rows:L.cuotas.map(c=>({fecha:c.fecha,capital:c.capital,interes:c.interes,pagado:!!c.pagado,tipo:c.tipo==="interes"?"interes":"",capitalAplazado:c.capitalAplazado,fechaPagoReal:c.fechaPagoReal||"",asumido:!!c.asumido}))};
   ui.open.add(id); renderPrestamos();}
 function ceCalc(){const d=ui.cuotaEdit;let saldo=d.capital;return d.rows.map(r=>{const ini=r2(saldo);saldo=r2(saldo-(+r.capital||0));return {ini,fin:saldo,total:r2((+r.capital||0)+(+r.interes||0))};});}
 function ceSummaryHtml(){const d=ui.cuotaEdit;const sc=r2(d.rows.reduce((a,r)=>a+(+r.capital||0),0)),si=r2(d.rows.reduce((a,r)=>a+(+r.interes||0),0));
@@ -711,7 +769,7 @@ function renderCuotaEditor(L){
       '<td class="num" data-l="Interés"><input type="number" step="0.01" min="0" data-ce="interes" data-i="'+i+'" value="'+r.interes+'"></td>'+
       '<td class="num" data-l="Cuota" data-ce-tot="'+i+'"><b>'+money(calc[i].total)+'</b></td>'+
       '<td class="num" data-l="Saldo final" data-ce-fin="'+i+'">'+money(calc[i].fin)+'</td>'+
-      '<td data-l="Estado"><select data-ce="pagado" data-i="'+i+'"><option value="0"'+(r.pagado?'':' selected')+'>Pendiente</option><option value="1"'+(r.pagado?' selected':'')+'>Pagado</option></select></td>'+
+      '<td data-l="Estado"><select data-ce="pagado" data-i="'+i+'"><option value="0"'+(r.pagado?'':' selected')+'>Pendiente</option><option value="1"'+(r.pagado&&r.tipo!=="interes"?' selected':'')+'>Pagado</option><option value="2"'+(r.pagado&&r.tipo==="interes"?' selected':'')+'>Solo interés</option></select></td>'+
       '<td data-l="Fecha pago real"><input type="date" data-ce="fechaPagoReal" data-i="'+i+'" value="'+esc(r.fechaPagoReal)+'"'+(r.pagado?'':' disabled')+'></td>'+
       '<td data-l=""><button class="btn sm danger" data-ce-del="'+i+'" title="Eliminar cuota">🗑</button></td></tr>').join("")+
     '</tbody></table><div id="ceSum">'+ceSummaryHtml()+'</div>'+
@@ -721,7 +779,7 @@ function ceRefresh(){const calc=ceCalc();calc.forEach((c,i)=>{const a=document.q
   if(a)a.textContent=money(c.ini);if(b)b.textContent=money(c.fin);if(t)t.innerHTML='<b>'+money(c.total)+'</b>';});const s=$("#ceSum");if(s)s.innerHTML=ceSummaryHtml();}
 function ceInput(el){const d=ui.cuotaEdit;if(!d)return;const i=+el.dataset.i,f=el.dataset.ce,r=d.rows[i];if(!r)return;
   if(f==="capital"||f==="interes"){r[f]=r2(parseFloat(el.value)||0);}
-  else if(f==="pagado"){r.pagado=el.value==="1";const fd=document.querySelector('input[data-ce="fechaPagoReal"][data-i="'+i+'"]');
+  else if(f==="pagado"){r.pagado=el.value!=="0";r.tipo=el.value==="2"?"interes":"";const fd=document.querySelector('input[data-ce="fechaPagoReal"][data-i="'+i+'"]');
     if(r.pagado&&!r.fechaPagoReal){r.fechaPagoReal=HOY;}if(!r.pagado)r.fechaPagoReal="";r.asumido=false;if(fd){fd.disabled=!r.pagado;fd.value=r.fechaPagoReal;}}
   else {r[f]=el.value; if(f==="fechaPagoReal")r.asumido=false;}
   ceRefresh();}
@@ -736,15 +794,77 @@ function ceAction(act,L){const d=ui.cuotaEdit;
     const sc=r2(d.rows.reduce((a,r)=>a+r.capital,0));
     if(Math.abs(sc-d.capital)>=0.005){if(!confirm("La suma del capital de las cuotas ("+money(sc)+") no coincide con el capital del préstamo ("+money(d.capital)+").\n¿Guardar y actualizar el capital del préstamo a "+money(sc)+"?"))return;L.capital=sc;}
     const calc=(function(){let s=L.capital;return d.rows.map(r=>{const ini=r2(s);s=r2(s-r.capital);return {ini,fin:s};});})();
-    L.cuotas=d.rows.map((r,i)=>({n:i+1,fecha:r.fecha,saldoIni:calc[i].ini,capital:r2(r.capital),interes:r2(r.interes),saldoFin:calc[i].fin,pagado:r.pagado,fechaPagoReal:r.pagado?(r.fechaPagoReal||HOY):null,asumido:r.pagado&&!!r.asumido}));
-    L.plazo=L.cuotas.length; ui.cuotaEdit=null; save(); renderAll(); toast("Cuotas guardadas");return;}
+    L.cuotas=d.rows.map((r,i)=>Object.assign({n:i+1,fecha:r.fecha,saldoIni:calc[i].ini,capital:r2(r.capital),interes:r2(r.interes),saldoFin:calc[i].fin,pagado:r.pagado,fechaPagoReal:r.pagado?(r.fechaPagoReal||HOY):null,asumido:r.pagado&&!!r.asumido},r.pagado&&r.tipo==="interes"?{tipo:"interes",capitalAplazado:r.capitalAplazado}:{}));
+    L.plazo=L.cuotas.length-L.cuotas.filter(esSoloInteres).length; ui.cuotaEdit=null; save(); renderAll(); toast("Cuotas guardadas");return;}
   renderPrestamos();
 }
 
+/* ---------- cobro: abonar (completo / solo interés), deshacer ---------- */
+function cobroCell(L,c){
+  const k=L.id+"|"+c.n;
+  if(!c.pagado) return '<div class="paybox"><button class="btn sm abonar" data-abonar="'+esc(k)+'" type="button">Abonar ▾</button></div>';
+  return '<div class="paybox"><input type="date" class="paydate" data-k="'+esc(k)+'" value="'+esc(c.fechaPagoReal||"")+'" title="Fecha real de pago'+(c.asumido?' (asumida)':'')+'">'+
+    '<button class="btn sm undo" data-undo="'+esc(k)+'" type="button" title="Deshacer: volver a Pendiente'+(esSoloInteres(c)?' y quitar el mes agregado':'')+'">↺ Deshacer</button></div>';
+}
+function laterPaid(L,idx){return L.cuotas.slice(idx+1).some(c=>c.pagado);}
+function renumber(L){L.cuotas.forEach((c,i)=>{c.n=i+1;});}
+function recalcFrom(L,idx){ // saldos en cadena; interés = tasa × saldo inicial en cuotas pendientes
+  let saldo=idx>0?L.cuotas[idx-1].saldoFin:r2(L.capital);
+  for(let i=idx;i<L.cuotas.length;i++){const c=L.cuotas[i];c.saldoIni=r2(saldo);c.saldoFin=r2(saldo-c.capital);if(!c.pagado)c.interes=r2(c.saldoIni*L.tasa/100);saldo=c.saldoFin;}
+}
+function pagarCompleto(k){const f=findCuota(k);if(!f||!f.c||f.c.pagado)return;
+  f.c.pagado=true;delete f.c.tipo;f.c.fechaPagoReal=HOY;f.c.asumido=false;save();renderAll();
+  toast("Pago completo registrado: "+shortName(f.L.persona)+" "+f.c.n+"/"+f.L.cuotas.length+" ("+money(cuotaTotal(f.c))+")");}
+/* Solo interés: la cuota queda cobrada solo con su interés (capital 0, saldo igual) y se inserta una cuota nueva con el
+   capital aplazado; esa y todas las siguientes se corren un mes (cada una toma la fecha de la siguiente; la última +1 mes). */
+function pagarSoloInteres(k){
+  const f=findCuota(k);if(!f||!f.c||f.c.pagado)return;const L=f.L,idx=L.cuotas.indexOf(f.c),c=f.c;
+  if(!(c.capital>0)){alert("Esta cuota no tiene capital que aplazar.");return;}
+  if(laterPaid(L,idx)){alert("No se puede registrar solo interés: hay cuotas posteriores ya pagadas. Desmárcalas primero.");return;}
+  const fechas=L.cuotas.map(x=>x.fecha), ultima=addMonthsISO(fechas[fechas.length-1],1);
+  const nueva={n:0,fecha:c.fecha,saldoIni:c.saldoIni,capital:c.capital,interes:c.interes,saldoFin:c.saldoFin,pagado:false,fechaPagoReal:null,asumido:false};
+  const capAplazado=c.capital;
+  c.capitalAplazado=capAplazado; c.capital=0; c.interes=r2(c.saldoIni*L.tasa/100); c.saldoFin=c.saldoIni;
+  c.pagado=true; c.tipo="interes"; c.fechaPagoReal=HOY; c.asumido=false;
+  L.cuotas.splice(idx+1,0,nueva);
+  for(let i=idx+1;i<L.cuotas.length;i++) L.cuotas[i].fecha = i<fechas.length ? fechas[i] : ultima;
+  renumber(L); recalcFrom(L,idx);
+  save(); renderAll();
+  const st=loanStats(L);
+  toast("Solo interés registrado ("+money(c.interes)+"). Capital "+money(capAplazado)+" pasa al "+fmtDate(L.cuotas[idx+1].fecha)+" · plazo "+st.plazoOrig+" → "+st.total+" meses");
+}
+function deshacer(k){
+  const f=findCuota(k);if(!f||!f.c||!f.c.pagado)return;const L=f.L,idx=L.cuotas.indexOf(f.c),c=f.c;
+  if(c.tipo==="interes"){
+    if(laterPaid(L,idx)){alert("Para deshacer este pago de solo interés primero desmarca las cuotas posteriores que ya están pagadas.");return;}
+    const fechas=L.cuotas.map(x=>x.fecha);
+    L.cuotas.splice(idx,1);                                  // quita la cuota de solo interés
+    for(let i=idx;i<L.cuotas.length;i++) L.cuotas[i].fecha=fechas[i]; // todo vuelve un mes atrás
+    renumber(L); recalcFrom(L,idx);
+    save(); renderAll(); toast("Pago de solo interés deshecho: la cuota vuelve a Pendiente y se quitó el mes agregado");
+  } else {
+    c.pagado=false; c.fechaPagoReal=null; c.asumido=false; delete c.tipo; save(); renderAll();
+    toast("Cuota marcada como pendiente: "+shortName(L.persona)+" "+c.n+"/"+L.cuotas.length);
+  }
+}
+function openAbono(btn){
+  const f=findCuota(btn.dataset.abonar);if(!f||!f.c)return;const {L,c}=f,idx=L.cuotas.indexOf(c),blocked=laterPaid(L,idx);
+  const m=$("#abonoMenu"), k=btn.dataset.abonar, intOnly=r2(c.saldoIni*L.tasa/100);
+  m.innerHTML='<div class="hd">Abonar cuota '+c.n+'/'+L.cuotas.length+' · '+esc(shortName(L.persona))+' · '+fmtDate(c.fecha)+'</div>'+
+    '<button type="button" data-pay="completo" data-k="'+esc(k)+'"><span>Pago completo<small>Capital '+money(c.capital)+' + interés '+money(c.interes)+'</small></span><b>'+money(cuotaTotal(c))+'</b></button>'+
+    '<button type="button" data-pay="interes" data-k="'+esc(k)+'"'+(blocked||!(c.capital>0)?' disabled':'')+'><span>Solo interés<small>El capital '+money(c.capital)+' se corre un mes (+1 mes de plazo)</small></span><b>'+money(intOnly)+'</b></button>'+
+    (blocked?'<div class="note2">Solo interés no disponible: hay cuotas posteriores pagadas.</div>':'');
+  m.hidden=false;
+  const r=btn.getBoundingClientRect(), mw=m.offsetWidth, mh=m.offsetHeight;
+  let x=Math.min(r.right-mw, window.innerWidth-mw-8); x=Math.max(8,x);
+  let y=r.bottom+6; if(y+mh>window.innerHeight-8) y=Math.max(8,r.top-mh-6);
+  m.style.left=x+"px"; m.style.top=y+"px";
+}
+function closeAbono(){const m=$("#abonoMenu");if(m)m.hidden=true;}
+
 /* ---------- acciones ---------- */
 function findCuota(k){const i=k.lastIndexOf("|");const id=k.slice(0,i),n=+k.slice(i+1);const L=state.loans.find(x=>x.id===id);return L?{L,c:L.cuotas.find(c=>c.n===n)}:null;}
-function setPagado(k,val){const f=findCuota(k); if(!f||!f.c) return; f.c.pagado=val; f.c.fechaPagoReal=val?HOY:null; f.c.asumido=false; save(); renderAll();
-  toast((val?"Cuota marcada como pagada: ":"Cuota marcada como pendiente: ")+shortName(f.L.persona)+" "+f.c.n+"/"+f.L.cuotas.length+" ("+money(cuotaTotal(f.c))+")");}
+function setPagado(k,val){if(val)pagarCompleto(k);else deshacer(k);}
 function setFechaPago(k,v){const f=findCuota(k); if(!f||!f.c) return; f.c.fechaPagoReal=v||null; f.c.asumido=false; save(); toast("Fecha de pago actualizada: "+(v?fmtDate(v):"sin fecha"));}
 function showTab(t){ui.tab=t;document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
   ["cuotas","resumen","prestamos"].forEach(x=>{$("#tab-"+x).hidden=(x!==t);});}
@@ -846,11 +966,18 @@ function bind(){
     else if(q==="vencidos"){ui.mes="todos";ui.estados=new Set(["vencido"]);}
     else {ui.mes="todos";ui.estados.clear();ui.persona="";ui.q="";$("#fQ").value="";}
     renderFilterOptions();renderCuotas();});
+  document.addEventListener("click",e=>{
+    const ab=e.target.closest("[data-abonar]"); if(ab){e.stopPropagation(); const m=$("#abonoMenu"); if(!m.hidden&&m.dataset.k===ab.dataset.abonar){closeAbono();return;} m.dataset.k=ab.dataset.abonar; openAbono(ab); return;}
+    const pay=e.target.closest("#abonoMenu [data-pay]"); if(pay){closeAbono(); if(pay.dataset.pay==="completo") pagarCompleto(pay.dataset.k); else pagarSoloInteres(pay.dataset.k); return;}
+    const un=e.target.closest("[data-undo]"); if(un){e.stopPropagation(); deshacer(un.dataset.undo); return;}
+    if(!e.target.closest("#abonoMenu")) closeAbono();
+  },true);
+  window.addEventListener("scroll",closeAbono,{passive:true}); window.addEventListener("resize",closeAbono);
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAbono();});
   document.addEventListener("input",e=>{if(e.target.matches("[data-ce]"))ceInput(e.target);});
   document.addEventListener("change",e=>{
     if(e.target.matches("[data-ce]")){ceInput(e.target);return;}
-    if(e.target.matches("input.tgl")) setPagado(e.target.dataset.k,e.target.checked);
-    else if(e.target.matches("input.paydate")) setFechaPago(e.target.dataset.k,e.target.value);
+    if(e.target.matches("input.paydate")) setFechaPago(e.target.dataset.k,e.target.value);
   });
   $("#tblResumen").addEventListener("click",e=>{const tr=e.target.closest("tr[data-mes]");if(!tr)return;ui.mes=tr.dataset.mes;ui.estados.clear();renderFilterOptions();renderCuotas();showTab("cuotas");window.scrollTo({top:0,behavior:"smooth"});});
   $("#tblPrestamos").addEventListener("click",e=>{
@@ -903,15 +1030,17 @@ function bind(){
   $("#cGo").addEventListener("click",connect);
   $("#cToken").addEventListener("keydown",e=>{if(e.key==="Enter")connect();});
   window.addEventListener("online",()=>{if(sync.dirty&&getToken())push();});
+  document.addEventListener("visibilitychange",()=>{ // al volver a la app, trae lo último de GitHub (si no hay cambios pendientes)
+    if(document.visibilityState==="visible"&&getToken()&&!sync.dirty&&!sync.busy&&$("#connect").hidden&&(!sync.lastOk||Date.now()-new Date(sync.lastOk).getTime()>30000)) syncFromRemote();});
   window.addEventListener("beforeunload",e=>{if(sync.dirty||sync.busy){e.preventDefault();e.returnValue="";}});
 }
 (function start(){
-  const c=readCache(); if(c){state=c.state; sync.sha=c.sha||null; sync.dirty=!!c.dirty; sync.lastOk=c.lastOk||null;}
+  const c=readCache(); if(c){state=c.state; sync.sha=c.sha||null; sync.base=c.base||null; sync.dirty=!!c.dirty; sync.lastOk=c.lastOk||null;}
   bind(); renderAll();
   if(!getToken()){showConnect();return;}
   syncFromRemote();
 })();
-window.__app={sync,push,syncFromRemote,GH_OWNER,GH_REPO,SEED_VERSION,state:()=>state,ui,HOY,filteredRows,sumRows,monthlySummary,loanStats,generarCuotas,renderAll,buildCsv};
+window.__app={pagarSoloInteres,pagarCompleto,deshacer,sync,push,syncFromRemote,GH_OWNER,GH_REPO,SEED_VERSION,state:()=>state,ui,HOY,filteredRows,sumRows,monthlySummary,loanStats,generarCuotas,renderAll,buildCsv};
 </script>
 </body>
 </html>
