@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="es-EC">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f2328">
+<meta name="color-scheme" content="light">
+<title>Control de Préstamos</title>
+<style>
+:root{
+  --bg:#f3f5f9; --card:#fff; --ink:#1f2328; --muted:#6b7588; --line:#e3e7ee;
+  --pri:#2b2f36; --pri2:#3a3f47; --pri-soft:#eceef1;
+  --ok:#1e7d4f; --ok-soft:#e3f5ea; --warn:#a86400; --warn-soft:#fff3dc; --bad:#b42318; --bad-soft:#fde8e6;
+  --radius:12px; --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.4}
+button,input,select,textarea{font:inherit;color:inherit}
+header.top{background:linear-gradient(120deg,#1f2328,#2b2f36 55%,#3a3f47);color:#fff;padding:18px 20px 0}
+.top-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;max-width:1280px;margin:0 auto}
+.brand h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px}
+.brand p{margin:2px 0 0;opacity:.8;font-size:13px}
+.top-actions{display:flex;gap:6px;flex-wrap:wrap}
+.top-actions .btn{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25);color:#fff}
+.top-actions .btn:hover{background:rgba(255,255,255,.22)}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;max-width:1280px;margin:14px auto 0}
+.kpi{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:10px 12px}
+.kpi .l{font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;opacity:.8}
+.kpi .v{font-size:18px;font-weight:700;margin-top:2px}
+nav.tabs{display:flex;gap:4px;max-width:1280px;margin:14px auto 0;overflow-x:auto}
+nav.tabs button{background:transparent;border:0;color:rgba(255,255,255,.8);padding:10px 16px;border-radius:10px 10px 0 0;cursor:pointer;font-weight:600;white-space:nowrap}
+nav.tabs button.active{background:var(--bg);color:var(--pri)}
+main{max-width:1280px;margin:0 auto;padding:16px 20px 40px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
+.panel+.panel{margin-top:14px}
+.panel h2{font-size:15px;margin:0 0 10px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;padding:7px 12px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap}
+.btn:hover{background:#f6f8fb}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}.btn.pri:hover{background:var(--pri2)}
+.btn.danger{color:var(--bad);border-color:#f3c3be}.btn.danger:hover{background:var(--bad-soft)}
+.btn.sm{padding:4px 9px;font-size:12px}
+.btn.ghost{border-color:transparent;background:transparent}
+.filters{display:grid;grid-template-columns:200px 190px 1fr;gap:10px;align-items:end}
+.field label{display:block;font-size:11.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid #b9bec7;border-color:var(--pri2)}
+.row2{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;cursor:pointer;font-weight:600;font-size:12.5px}
+.chip.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.chip.on.c-pagado{background:var(--ok);border-color:var(--ok)}
+.chip.on.c-porvencer{background:var(--warn);border-color:var(--warn)}
+.chip.on.c-vencido{background:var(--bad);border-color:var(--bad)}
+.spacer{flex:1}
+.quick{display:flex;gap:6px;flex-wrap:wrap}
+.cards{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;margin-top:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:var(--shadow)}
+.card .l{font-size:11.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.card .v{font-size:17px;font-weight:700;margin-top:3px}
+.card.ok .v{color:var(--ok)}.card.warn .v{color:var(--warn)}.card.bad .v{color:var(--bad)}.card.main{border-color:#b9bec7;background:var(--pri-soft)}
+.card .s{font-size:11.5px;color:var(--muted)}
+.tablewrap{overflow-x:auto;margin-top:12px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;background:#fafbfd;position:sticky;top:0;white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tbody tr:hover{background:#f7f8f9}
+tr.is-pagado td{color:#55606f}
+tr.total td{font-weight:700;background:#fafbfd;border-top:2px solid var(--line)}
+tr.cur td{background:#eff0f2}
+tr.clickable{cursor:pointer}
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.b-pagado{background:var(--ok-soft);color:var(--ok)}
+.b-porvencer{background:var(--warn-soft);color:var(--warn)}
+.b-vencido{background:var(--bad-soft);color:var(--bad)}
+.b-vigente{background:var(--pri-soft);color:var(--pri)}
+.persona b{display:block}
+.persona small,.muted{color:var(--muted);font-size:12px}
+.paybox{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.switch{position:relative;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;font-size:12.5px;user-select:none}
+.switch input{position:absolute;opacity:0;width:0;height:0}
+.switch .t{width:34px;height:20px;border-radius:999px;background:#cfd6e1;position:relative;transition:.15s;flex:none}
+.switch .t::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:.15s}
+.switch input:checked + .t{background:var(--ok)}
+.switch input:checked + .t::after{left:16px}
+.switch input:focus-visible + .t{outline:2px solid #b9bec7}
+input.paydate{padding:4px 6px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;max-width:140px}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+.loanhead{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-bottom:6px}
+.loanhead .field{min-width:170px}
+.expand{background:#fbfcfe}
+.expand td{padding:0}
+.expand .inner{padding:12px 14px 16px}
+.expand table th{background:#f1f4f9}
+.note{background:#fff8e6;border:1px solid #f3dfa8;color:#6b4e00;border-radius:8px;padding:8px 10px;font-size:12.5px;margin-bottom:10px}
+.caret{display:inline-block;transition:.15s;width:14px}
+.open .caret{transform:rotate(90deg)}
+.actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.progress{height:6px;background:#e8ecf2;border-radius:999px;overflow:hidden;min-width:70px;margin-top:4px}
+.progress > i{display:block;height:100%;background:var(--ok)}
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(16,24,40,.45);display:none;align-items:flex-start;justify-content:center;padding:30px 12px;overflow-y:auto;z-index:50}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:14px;max-width:760px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.modal header{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.modal header h3{margin:0;font-size:16px}
+.modal .body{padding:16px 18px}
+.modal footer{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.grid-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.grid-form .span2{grid-column:span 2}.grid-form .span3{grid-column:span 3}
+.preview{margin-top:14px;max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.preview table th{position:sticky;top:0}
+.err{color:var(--bad);font-size:12.5px;margin-top:8px;min-height:1em}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(20px);background:#2b2f36;color:#fff;padding:10px 16px;border-radius:10px;opacity:0;transition:.2s;z-index:60;font-size:13px;pointer-events:none;max-width:92vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.foot{color:var(--muted);font-size:12px;text-align:center;margin-top:18px}
+.ce-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.ce input,.ce select{padding:5px 6px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;width:100%;min-width:0;background:#fff}
+.ce input[type=number]{text-align:right;max-width:110px}
+.ce input[type=date]{max-width:150px}
+.ce input:disabled{background:#f3f5f8;color:#9aa3b2}
+.ce-sum{font-size:12.5px;margin:8px 0 0}
+.ce-sum.bad{color:var(--bad);font-weight:600}
+.regen{display:flex;gap:8px;align-items:flex-start;background:var(--pri-soft);border:1px solid #b9bec7;border-radius:8px;padding:8px 10px;font-size:13px}
+.regen input{margin-top:3px}
+@media (max-width:1100px){.cards{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:760px){
+  header.top{padding:14px 12px 0}
+  main{padding:12px 10px 30px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi .v{font-size:16px}
+  .filters{grid-template-columns:1fr 1fr}
+  .filters .field.search{grid-column:span 2}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid-form{grid-template-columns:1fr 1fr}
+  .grid-form .span2,.grid-form .span3{grid-column:span 2}
+  /* table -> cards */
+  table.responsive thead{display:none}
+  table.responsive, table.responsive tbody, table.responsive tr, table.responsive td{display:block;width:100%}
+  table.responsive tr{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;background:#fff;padding:6px 4px;box-shadow:var(--shadow)}
+  table.responsive tr.total{border-top:2px solid var(--pri)}
+  table.responsive td{border:0;padding:5px 10px;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:right}
+  table.responsive td.num{text-align:right}
+  table.responsive td::before{content:attr(data-l);font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;text-align:left;flex:none}
+  table.responsive td.persona{text-align:left;display:block;border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:3px}
+  table.responsive td.persona::before{display:none}
+  table.responsive tr.expand{padding:0;border:0;box-shadow:none;background:transparent}
+  table.responsive tr.expand td{display:block;padding:0}
+  table.responsive tr.expand td::before{display:none}
+  .expand .inner{padding:4px 0}
+  .actions{justify-content:flex-end}
+  .tablewrap{overflow-x:visible}
+}
+.sync{display:inline-flex;align-items:center;gap:5px;margin-left:8px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;vertical-align:middle}
+.sync.ok{background:rgba(30,125,79,.35);border-color:rgba(120,220,170,.5)}
+.sync.busy{background:rgba(255,255,255,.12)}
+.sync.warn{background:rgba(168,100,0,.45);border-color:rgba(255,200,120,.55)}
+.sync.err{background:rgba(180,35,24,.55);border-color:rgba(255,160,150,.6)}
+.connect{position:fixed;inset:0;z-index:70;background:rgba(31,35,40,.72);display:flex;align-items:center;justify-content:center;padding:16px}
+.connect[hidden]{display:none}
+.connect-card{background:#fff;border-radius:14px;max-width:440px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.35);overflow:hidden}
+.connect-card .hd{background:linear-gradient(120deg,#1f2328,#2b2f36 55%,#3a3f47);color:#fff;padding:16px 18px}
+.connect-card .hd h2{margin:0;font-size:18px}
+.connect-card .hd p{margin:4px 0 0;opacity:.8;font-size:13px}
+.connect-card .bd{padding:16px 18px}
+.connect-card .bd p{margin:0 0 12px}
+.connect-card .btn.pri{width:100%;justify-content:center;padding:10px;margin-top:6px}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:6px 10px;font-size:13px;margin-bottom:12px}
+.kv dt{color:var(--muted);font-weight:600}.kv dd{margin:0;word-break:break-all}
+@media print{header.top .top-actions,nav.tabs,.filters,.row2,.btn{display:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-row">
+    <div class="brand">
+      <h1>Control de Préstamos Personales</h1>
+      <p><span id="hoyLabel"></span> <button type="button" class="sync" id="syncStatus" title="Estado de guardado en GitHub">…</button></p>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="btnExportJson" title="Descargar respaldo de todos los datos">⬇ Respaldo JSON</button>
+      <button class="btn" id="btnImportJson" title="Cargar un respaldo JSON">⬆ Importar JSON</button>
+      <button class="btn" id="btnSync" title="Volver a cargar los datos desde GitHub">⟳ Sincronizar</button>
+      <button class="btn" id="btnSettings" title="Conexión con GitHub">⚙ Ajustes</button>
+      <input type="file" id="fileImport" accept="application/json,.json" hidden>
+    </div>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <nav class="tabs" id="tabs">
+    <button data-tab="cuotas" class="active">Cuotas por mes</button>
+    <button data-tab="resumen">Resumen mensual</button>
+    <button data-tab="prestamos">Préstamos</button>
+  </nav>
+</header>
+
+<main>
+  <!-- CUOTAS -->
+  <section id="tab-cuotas">
+    <div class="panel">
+      <div class="filters">
+        <div class="field"><label for="fMes">Mes</label><select id="fMes"></select></div>
+        <div class="field"><label for="fPersona">Persona</label><select id="fPersona"></select></div>
+        <div class="field search"><label for="fQ">Buscar</label><input id="fQ" type="search" placeholder="Nombre, cédula, fecha, monto…"></div>
+      </div>
+      <div class="row2">
+        <div class="chips" id="fEstado">
+          <button class="chip" data-e="">Todos</button>
+          <button class="chip c-pagado" data-e="pagado">Pagado</button>
+          <button class="chip c-porvencer" data-e="porvencer">Por vencer</button>
+          <button class="chip c-vencido" data-e="vencido">Vencido</button>
+        </div>
+        <div class="spacer"></div>
+        <div class="quick">
+          <button class="btn sm" data-q="este">Este mes</button>
+          <button class="btn sm" data-q="proximo">Próximo mes</button>
+          <button class="btn sm" data-q="vencidos">Vencidos</button>
+          <button class="btn sm ghost" data-q="limpiar">Limpiar filtros</button>
+        </div>
+      </div>
+    </div>
+    <div class="cards" id="cards"></div>
+    <div class="panel" style="margin-top:14px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <h2 style="margin:0" id="cuotasTitle">Cuotas</h2>
+        <div class="spacer"></div>
+        <button class="btn sm" id="btnCsv">⬇ Exportar CSV</button>
+      </div>
+      <div class="tablewrap">
+        <table class="responsive" id="tblCuotas">
+          <thead><tr>
+            <th>Persona</th><th>Préstamo</th><th>Cuota</th><th>Fecha de pago</th>
+            <th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo después</th>
+            <th>Estado</th><th>Cobro</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESUMEN -->
+  <section id="tab-resumen" hidden>
+    <div class="panel">
+      <h2>Resumen mes a mes (toda la cartera)</h2>
+      <p class="muted" style="margin:-4px 0 8px">Toca un mes para ver sus cuotas.</p>
+      <div class="tablewrap">
+        <table class="responsive" id="tblResumen">
+          <thead><tr>
+            <th>Mes</th><th class="num">Nº cuotas</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Total esperado</th>
+            <th class="num">Cobrado</th><th class="num">Pendiente</th><th class="num">Vencido</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRESTAMOS -->
+  <section id="tab-prestamos" hidden>
+    <div class="panel">
+      <div class="loanhead">
+        <div class="field"><label for="lEstado">Estado</label>
+          <select id="lEstado"><option value="todos">Todos</option><option value="vigente">Vigentes</option><option value="pagado">Pagados</option></select></div>
+        <div class="field"><label for="lPersona">Persona</label><select id="lPersona"></select></div>
+        <div class="spacer"></div>
+        <button class="btn pri" id="btnNuevo">＋ Nuevo préstamo</button>
+      </div>
+      <div class="tablewrap">
+        <table class="responsive" id="tblPrestamos">
+          <thead><tr>
+            <th>Persona</th><th>Cédula</th><th class="num">Capital</th><th class="num">Tasa</th><th class="num">Plazo</th>
+            <th>Transferencia</th><th>Fecha fin</th><th class="num">Saldo capital</th><th class="num">Interés total</th><th>Estado</th><th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  <p class="foot">Los datos se guardan en tu repositorio privado de GitHub y quedan en caché en este navegador para verlos sin conexión. “Respaldo JSON” descarga una copia.</p>
+</main>
+
+<!-- MODAL PRESTAMO -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <header><h3 id="mTitle">Nuevo préstamo</h3><button class="btn ghost" id="mClose" aria-label="Cerrar">✕</button></header>
+    <div class="body">
+      <form id="loanForm" autocomplete="off">
+        <div class="grid-form">
+          <div class="field span2"><label for="iPersona">Persona</label><input id="iPersona" list="dlPersonas" required></div>
+          <div class="field"><label for="iCedula">Cédula</label><input id="iCedula" inputmode="numeric"></div>
+          <div class="field"><label for="iCapital">Capital ($)</label><input id="iCapital" type="number" min="0.01" step="0.01" required></div>
+          <div class="field"><label for="iTasa">Tasa mensual (%)</label><input id="iTasa" type="number" min="0" step="0.01" required></div>
+          <div class="field"><label for="iMeses">Nº de meses</label><input id="iMeses" type="number" min="1" max="120" step="1" required></div>
+          <div class="field"><label for="iTransf">Fecha de transferencia</label><input id="iTransf" type="date" required></div>
+          <div class="field"><label for="iPrimera">Fecha primera cuota</label><input id="iPrimera" type="date" required></div>
+          <div class="field"><label>&nbsp;</label><span class="muted">Capital igual cada mes; interés = tasa × saldo inicial.</span></div>
+          <div class="field span3"><label for="iNota">Nota (opcional)</label><input id="iNota"></div>
+          <div class="span3" id="regenRow" hidden><label class="regen"><input type="checkbox" id="iRegen"><span><b>Recalcular la tabla de amortización</b> con capital, tasa, meses y primera cuota de arriba (capital igual cada mes, interés = tasa × saldo). Los pagos marcados se conservan por número de cuota. Si no lo marcas, solo se guardan los datos del préstamo y las cuotas quedan como están (puedes editarlas una por una en la pestaña Préstamos → Editar cuotas).</span></label></div>
+        </div>
+        <datalist id="dlPersonas"></datalist>
+        <div class="err" id="mErr"></div>
+        <div class="preview" id="mPreview"></div>
+      </form>
+    </div>
+    <footer>
+      <button class="btn" id="mCancel" type="button">Cancelar</button>
+      <button class="btn pri" id="mSave" type="button">Guardar préstamo</button>
+    </footer>
+  </div>
+</div>
+<div class="connect" id="connect" hidden>
+  <div class="connect-card" role="dialog" aria-modal="true" aria-labelledby="cTitle">
+    <div class="hd"><h2 id="cTitle">Conectar</h2><p>Control de Préstamos Personales</p></div>
+    <div class="bd">
+      <p>Los datos están en tu repositorio privado de GitHub <b id="cRepo"></b>. Pega tu token de GitHub para abrirlos.</p>
+      <div class="field"><label for="cToken">Token de GitHub</label><input id="cToken" type="password" autocomplete="off" spellcheck="false" placeholder="ghp_… o github_pat_…"></div>
+      <p class="muted" style="margin:8px 0 0">🔒 El token se guarda solo en este dispositivo y únicamente se envía a api.github.com.</p>
+      <div class="err" id="cErr"></div>
+      <button class="btn pri" id="cGo" type="button">Conectar</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="setBg">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sTitle" style="max-width:520px">
+    <header><h3 id="sTitle">Ajustes · GitHub</h3><button class="btn ghost" id="sClose" aria-label="Cerrar">✕</button></header>
+    <div class="body">
+      <dl class="kv" id="sInfo"></dl>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="sSync" type="button">⟳ Sincronizar ahora</button>
+        <a class="btn" id="sLink" target="_blank" rel="noopener">Ver data.json en GitHub ↗</a>
+        <span class="spacer"></span>
+        <button class="btn danger" id="sDisconnect" type="button">Desconectar este dispositivo</button>
+      </div>
+      <p class="muted" style="margin:12px 0 0">Desconectar borra el token y la copia local de este navegador. Los datos siguen guardados en GitHub.</p>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ---------- configuración de almacenamiento (GitHub) ---------- */
+const GH_OWNER  = "alfredtuch00";             // usuario u organización dueña del repositorio de datos
+const GH_REPO   = "control-prestamos-datos";  // repositorio PRIVADO con los datos
+const GH_PATH   = "data.json";                // archivo de datos dentro del repositorio
+const GH_BRANCH = "main";
+const LS_KEY    = "controlPrestamos.cache.v2"; // copia local (offline) de los datos
+const LS_TOKEN  = "controlPrestamos.ghToken";  // token guardado solo en este dispositivo
+const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const ESTADO_LABEL = {pagado:"Pagado", porvencer:"Por vencer", vencido:"Vencido"};
+
+/* ---------- utilidades ---------- */
+const pad = n => String(n).padStart(2,"0");
+const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+const clone = o => JSON.parse(JSON.stringify(o));
+const $ = s => document.querySelector(s);
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function money(n){const v=r2(n);const s=Math.abs(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});return (v<0?"-$":"$")+s;}
+function fmtDate(iso){if(!iso)return "";const [y,m,d]=iso.split("-");return d+"/"+m+"/"+y;}
+function isoOf(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
+function todayISO(){
+  const p=new URLSearchParams(location.search).get("hoy");
+  if(p && /^\d{4}-\d{2}-\d{2}$/.test(p)) return p;
+  return isoOf(new Date());
+}
+const HOY = todayISO();
+const monthKey = iso => iso.slice(0,7);
+function monthLabel(k){const [y,m]=k.split("-");return MESES[+m-1]+" "+y;}
+function addMonthsKey(k,n){let [y,m]=k.split("-").map(Number);m+=n;while(m>12){m-=12;y++;}while(m<1){m+=12;y--;}return y+"-"+pad(m);}
+function addMonthsISO(iso,n){
+  const [y,m,d]=iso.split("-").map(Number);
+  let mm=m-1+n, yy=y+Math.floor(mm/12); mm=((mm%12)+12)%12;
+  const last=new Date(yy,mm+1,0).getDate();
+  return yy+"-"+pad(mm+1)+"-"+pad(Math.min(d,last));
+}
+function shortName(n){const t=String(n||"").trim().split(/\s+/);return t.length>=4?t[0]+" "+t[2]:t.length===3?t[0]+" "+t[1]:String(n||"");}
+function cuotaTotal(c){return r2(c.capital+c.interes);}
+function estadoDe(c){return c.pagado?"pagado":(c.fecha<HOY?"vencido":"porvencer");}
+
+/* ---------- generación de tabla (mismo método de los PDF) ---------- */
+function generarCuotas(capital,tasa,meses,primera){
+  capital=r2(capital); meses=Math.max(1,Math.round(meses));
+  const base=r2(capital/meses); let saldo=capital; const out=[];
+  for(let i=1;i<=meses;i++){
+    const cap = i===meses ? r2(saldo) : base;
+    const int = r2(saldo*tasa/100);
+    const fin = r2(saldo-cap);
+    out.push({n:i,fecha:addMonthsISO(primera,i-1),saldoIni:r2(saldo),capital:cap,interes:int,saldoFin:fin,pagado:false,fechaPagoReal:null});
+    saldo=fin;
+  }
+  return out;
+}
+
+/* ---------- estado / persistencia (GitHub + caché local) ---------- */
+const SEED_VERSION = 2;
+let state = {version:1, seedVersion:SEED_VERSION, loans:[]};
+const sync = {sha:null, dirty:false, rev:0, busy:false, again:false, timer:null, kind:"", lastOk:null};
+function getToken(){try{return localStorage.getItem(LS_TOKEN)||"";}catch(e){return "";}}
+function readCache(){try{const c=JSON.parse(localStorage.getItem(LS_KEY)||"null"); if(c&&c.state&&Array.isArray(c.state.loans)) return c;}catch(e){console.warn(e);} return null;}
+function writeCache(){try{localStorage.setItem(LS_KEY,JSON.stringify({state,sha:sync.sha,dirty:sync.dirty,lastOk:sync.lastOk}));}catch(e){console.warn(e);}}
+function b64encode(str){const by=new TextEncoder().encode(str);let bin="";for(let i=0;i<by.length;i+=0x8000)bin+=String.fromCharCode.apply(null,by.subarray(i,i+0x8000));return btoa(bin);}
+function b64decode(b64){const bin=atob(String(b64||"").replace(/\s/g,""));const by=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)by[i]=bin.charCodeAt(i);return new TextDecoder("utf-8").decode(by);}
+const GH_API="https://api.github.com/repos/"+encodeURIComponent(GH_OWNER)+"/"+encodeURIComponent(GH_REPO);
+async function ghFetch(url,opts,token){
+  const o=Object.assign({cache:"no-store"},opts||{});
+  o.headers=Object.assign({"Accept":"application/vnd.github+json","Authorization":"Bearer "+(token||getToken())},o.body?{"Content-Type":"application/json"}:{});
+  const res=await fetch(url,o); let data=null; try{data=await res.json();}catch(e){}
+  return {status:res.status,data};
+}
+function authError(msg){const e=new Error(msg);e.auth=true;return e;}
+/* Lee data.json. Devuelve {doc, sha}; doc=null si el archivo aún no existe. */
+async function fetchRemote(token){
+  const r=await ghFetch(GH_API+"/contents/"+GH_PATH.split("/").map(encodeURIComponent).join("/")+"?ref="+encodeURIComponent(GH_BRANCH),{method:"GET"},token);
+  if(r.status===200&&r.data){
+    let text;
+    if(r.data.content&&r.data.encoding==="base64") text=b64decode(r.data.content);
+    else { const bl=await ghFetch(GH_API+"/git/blobs/"+r.data.sha,{method:"GET"},token); if(bl.status!==200) throw new Error("HTTP "+bl.status); text=b64decode(bl.data.content); }
+    let doc; try{doc=JSON.parse(text);}catch(e){throw new Error("data.json no es un JSON válido");}
+    return {doc,sha:r.data.sha};
+  }
+  if(r.status===401) throw authError("El token no es válido o expiró.");
+  if(r.status===403) throw authError("El token no tiene permiso para leer el repositorio.");
+  if(r.status===404){
+    const repo=await ghFetch(GH_API,{method:"GET"},token);
+    if(repo.status===200) return {doc:null,sha:null};
+    throw authError("No se encontró "+GH_OWNER+"/"+GH_REPO+" o el token no tiene acceso.");
+  }
+  throw new Error("GitHub respondió HTTP "+r.status);
+}
+function serialize(){return JSON.stringify({app:"control-prestamos",version:1,seedVersion:state.seedVersion||SEED_VERSION,actualizado:state.updated||new Date().toISOString(),loans:state.loans},null,1)+"\n";}
+function setStatus(kind,msg){
+  sync.kind=kind; const el=document.getElementById("syncStatus"); if(!el) return;
+  const M={loading:["busy","Cargando…"],pending:["busy","Guardando…"],saving:["busy","Guardando…"],saved:["ok","Guardado ✓"],synced:["ok","Sincronizado ✓"],
+    offline:["warn","Sin conexión · guardado aquí"],error:["err","Error al guardar"],nocon:["warn","Sin conectar"]};
+  const m=M[kind]||["busy",kind]; el.className="sync "+m[0]; el.textContent=m[1]; el.title=msg||m[1];
+}
+/* Sube el estado completo a GitHub (PUT con sha). Conflictos 409/422: vuelve a leer el sha y reintenta. */
+async function push(){
+  if(!getToken()){setStatus("nocon");return;}
+  if(sync.busy){sync.again=true;return;}
+  sync.busy=true; setStatus("saving");
+  const revAtStart=sync.rev; let ok=false, errMsg="";
+  try{
+    for(let attempt=0;attempt<4&&!ok;attempt++){
+      const body={message:"Actualizar préstamos · "+new Date().toLocaleString("es-EC"),content:b64encode(serialize()),branch:GH_BRANCH};
+      if(sync.sha) body.sha=sync.sha;
+      const r=await ghFetch(GH_API+"/contents/"+GH_PATH.split("/").map(encodeURIComponent).join("/"),{method:"PUT",body:JSON.stringify(body)});
+      if(r.status===200||r.status===201){sync.sha=r.data.content.sha;ok=true;break;}
+      if(r.status===409||r.status===422||r.status===404){const rem=await fetchRemote();sync.sha=rem.sha;continue;}
+      if(r.status===401||r.status===403){errMsg="El token no tiene permiso para guardar.";break;}
+      errMsg="GitHub respondió HTTP "+r.status+(r.data&&r.data.message?": "+r.data.message:"");break;
+    }
+    if(ok){sync.dirty=(sync.rev!==revAtStart);sync.lastOk=new Date().toISOString();writeCache();setStatus(sync.dirty?"pending":"saved");}
+    else {setStatus("error",errMsg||"No se pudo guardar por conflictos repetidos. Toca para reintentar.");}
+  }catch(e){
+    if(e.auth) setStatus("error",e.message); else setStatus("offline","Sin conexión con GitHub. Los cambios quedan en este dispositivo y se subirán al reconectar.");
+  }finally{
+    sync.busy=false;
+    if(sync.again||(ok&&sync.dirty)){sync.again=false;if(sync.dirty)setTimeout(push,50);}
+  }
+}
+function schedulePush(){clearTimeout(sync.timer);setStatus("pending");sync.timer=setTimeout(push,500);}
+function save(){
+  state.updated=new Date().toISOString(); sync.dirty=true; sync.rev++;
+  writeCache(); schedulePush();
+}
+function applyDoc(doc){
+  const loans=validLoans(doc); if(!loans) throw new Error("data.json tiene un formato no reconocido");
+  state={version:1,seedVersion:Number(doc.seedVersion)||SEED_VERSION,loans,updated:doc.actualizado||doc.exportado||null};
+}
+/* Carga desde GitHub. Si hay cambios locales sin subir (p. ej. hechos sin conexión), primero se suben. */
+async function syncFromRemote(){
+  if(!getToken()){showConnect();return false;}
+  if(sync.dirty){
+    clearTimeout(sync.timer); await push();
+    if(sync.dirty) return false;
+    toast("Se subieron a GitHub los cambios guardados en este dispositivo");
+  }
+  setStatus("loading");
+  try{
+    const r=await fetchRemote();
+    if(r.doc) applyDoc(r.doc);
+    sync.sha=r.sha; sync.dirty=false; sync.lastOk=new Date().toISOString(); writeCache(); renderAll(); setStatus("synced");
+    if(!r.doc) toast("Aún no existe "+GH_PATH+" en el repositorio; se creará con el primer cambio.");
+    return true;
+  }catch(e){
+    if(e.auth){setStatus("error",e.message);showConnect(e.message);} else {setStatus("offline","No se pudo conectar con GitHub; se muestran los datos guardados en este dispositivo.");}
+    return false;
+  }
+}
+function showConnect(msg){$("#cRepo").textContent=GH_OWNER+"/"+GH_REPO;$("#cErr").textContent=msg||"";$("#connect").hidden=false;setTimeout(()=>$("#cToken").focus(),30);if(!getToken())setStatus("nocon");}
+async function connect(){
+  const tok=$("#cToken").value.trim(); if(!tok){$("#cErr").textContent="Pega el token.";return;}
+  $("#cGo").disabled=true; $("#cGo").textContent="Conectando…"; $("#cErr").textContent="";
+  try{
+    const r=await fetchRemote(tok);
+    localStorage.setItem(LS_TOKEN,tok);
+    if(r.doc) applyDoc(r.doc);
+    sync.sha=r.sha; sync.dirty=false; sync.lastOk=new Date().toISOString(); writeCache();
+    $("#connect").hidden=true; $("#cToken").value=""; renderAll(); setStatus("synced");
+    toast(r.doc?"Conectado · "+state.loans.length+" préstamos cargados":"Conectado · el archivo de datos se creará con el primer cambio");
+  }catch(e){$("#cErr").textContent=e.auth?e.message:"No se pudo conectar con GitHub ("+e.message+"). Revisa tu internet.";}
+  finally{$("#cGo").disabled=false;$("#cGo").textContent="Conectar";}
+}
+function openSettings(){
+  const tok=getToken();
+  $("#sInfo").innerHTML='<dt>Repositorio</dt><dd>'+esc(GH_OWNER+"/"+GH_REPO)+' (privado)</dd><dt>Archivo</dt><dd>'+esc(GH_PATH)+' · rama '+esc(GH_BRANCH)+'</dd>'+
+    '<dt>Token</dt><dd>'+(tok?'Guardado en este dispositivo (…'+esc(tok.slice(-4))+')':'No conectado')+'</dd>'+
+    '<dt>Estado</dt><dd>'+esc(document.getElementById("syncStatus").title||"")+'</dd>'+
+    '<dt>Última sincronización</dt><dd>'+(sync.lastOk?esc(new Date(sync.lastOk).toLocaleString("es-EC")):"—")+'</dd>'+
+    '<dt>Préstamos</dt><dd>'+state.loans.length+'</dd>';
+  $("#sLink").href="https://github.com/"+GH_OWNER+"/"+GH_REPO+"/blob/"+GH_BRANCH+"/"+GH_PATH;
+  $("#setBg").classList.add("show");
+}
+function disconnect(){
+  const warn=(sync.dirty||sync.busy)?"\n\nATENCIÓN: hay cambios que todavía no se subieron a GitHub y se perderán.":"";
+  if(!confirm("¿Desconectar este dispositivo?\nSe borrará el token y la copia local de los datos en este navegador. Los datos siguen en GitHub."+warn)) return;
+  try{localStorage.removeItem(LS_TOKEN);localStorage.removeItem(LS_KEY);}catch(e){}
+  clearTimeout(sync.timer); Object.assign(sync,{sha:null,dirty:false,rev:0,again:false,lastOk:null});
+  state={version:1,seedVersion:SEED_VERSION,loans:[]}; ui.open.clear(); ui.cuotaEdit=null;
+  $("#setBg").classList.remove("show"); renderAll(); showConnect(); toast("Dispositivo desconectado");
+}
+const ui = {cuotaEdit:null, formOrig:null, regenTocado:false, tab:"cuotas", mes:monthKey(HOY), estados:new Set(), persona:"", q:"", lEstado:"todos", lPersona:"", open:new Set(), editId:null, primeraTocada:false};
+
+function loanStats(L){
+  const pagadoCap=L.cuotas.filter(c=>c.pagado).reduce((a,c)=>a+c.capital,0);
+  const interes=L.cuotas.reduce((a,c)=>a+c.interes,0);
+  const pagadas=L.cuotas.filter(c=>c.pagado).length;
+  const vencidas=L.cuotas.filter(c=>estadoDe(c)==="vencido").length;
+  const fin=L.cuotas.length?L.cuotas[L.cuotas.length-1].fecha:"";
+  return {saldo:r2(L.capital-pagadoCap), interes:r2(interes), pagadas, total:L.cuotas.length, vencidas, fin, estado: pagadas===L.cuotas.length?"pagado":"vigente"};
+}
+function loanLabel(L){return money(L.capital)+" · "+fmtDate(L.transferencia);}
+function allRows(){
+  const rows=[];
+  state.loans.forEach(L=>L.cuotas.forEach(c=>rows.push({L,c,estado:estadoDe(c),total:cuotaTotal(c)})));
+  rows.sort((a,b)=>a.c.fecha.localeCompare(b.c.fecha)||a.L.persona.localeCompare(b.L.persona)||a.c.n-b.c.n);
+  return rows;
+}
+function filteredRows(){
+  const q=ui.q.trim().toLowerCase();
+  return allRows().filter(r=>{
+    if(ui.mes!=="todos" && monthKey(r.c.fecha)!==ui.mes) return false;
+    if(ui.estados.size && !ui.estados.has(r.estado)) return false;
+    if(ui.persona && r.L.persona!==ui.persona) return false;
+    if(q){
+      const hay=[r.L.persona,r.L.cedula,loanLabel(r.L),fmtDate(r.c.fecha),money(r.total),money(r.c.capital),money(r.c.interes),ESTADO_LABEL[r.estado],String(r.total)].join(" ").toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+function sumRows(rows){
+  const s={n:rows.length,total:0,capital:0,interes:0,cobrado:0,pendiente:0,porvencer:0,vencido:0,nPag:0,nVen:0,nPor:0};
+  rows.forEach(r=>{s.total+=r.total;s.capital+=r.c.capital;s.interes+=r.c.interes;
+    if(r.estado==="pagado"){s.cobrado+=r.total;s.nPag++;} else {s.pendiente+=r.total; if(r.estado==="vencido"){s.vencido+=r.total;s.nVen++;} else {s.porvencer+=r.total;s.nPor++;}}});
+  for(const k of ["total","capital","interes","cobrado","pendiente","porvencer","vencido"]) s[k]=r2(s[k]);
+  return s;
+}
+function personas(){return [...new Set(state.loans.map(L=>L.persona))].sort((a,b)=>a.localeCompare(b));}
+
+/* ---------- render ---------- */
+function renderAll(){renderKpis();renderFilterOptions();renderCuotas();renderResumen();renderPrestamos();}
+function renderKpis(){
+  const st=state.loans.map(loanStats);
+  const vig=st.filter(s=>s.estado==="vigente").length;
+  const saldo=r2(st.reduce((a,s)=>a+s.saldo,0));
+  const rows=allRows(); const ven=rows.filter(r=>r.estado==="vencido");
+  const mes=rows.filter(r=>monthKey(r.c.fecha)===monthKey(HOY));
+  const mesPend=r2(mes.filter(r=>r.estado!=="pagado").reduce((a,r)=>a+r.total,0));
+  $("#kpis").innerHTML=
+    kpi("Préstamos vigentes",vig+" de "+state.loans.length)+
+    kpi("Capital por recuperar",money(saldo))+
+    kpi("Por cobrar "+MESES[+HOY.slice(5,7)-1].toLowerCase(),money(mesPend))+
+    kpi("Vencido",money(ven.reduce((a,r)=>a+r.total,0))+(ven.length?" ("+ven.length+")":""));
+  function kpi(l,v){return '<div class="kpi"><div class="l">'+esc(l)+'</div><div class="v">'+esc(v)+'</div></div>';}
+}
+function renderFilterOptions(){
+  const keys=new Set(allRows().map(r=>monthKey(r.c.fecha))); keys.add(monthKey(HOY)); keys.add(addMonthsKey(monthKey(HOY),1));
+  if(ui.mes!=="todos") keys.add(ui.mes);
+  const sorted=[...keys].sort();
+  $("#fMes").innerHTML='<option value="todos">Todos los meses</option>'+sorted.map(k=>'<option value="'+k+'">'+monthLabel(k)+(k===monthKey(HOY)?" (actual)":"")+'</option>').join("");
+  $("#fMes").value=ui.mes;
+  const ps=personas();
+  if(ui.persona && !ps.includes(ui.persona)) ui.persona="";
+  if(ui.lPersona && !ps.includes(ui.lPersona)) ui.lPersona="";
+  const opts='<option value="">Todas</option>'+ps.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join("");
+  $("#fPersona").innerHTML=opts; $("#fPersona").value=ui.persona;
+  $("#lPersona").innerHTML=opts; $("#lPersona").value=ui.lPersona;
+  $("#dlPersonas").innerHTML=ps.map(p=>'<option value="'+esc(p)+'">').join("");
+  document.querySelectorAll("#fEstado .chip").forEach(b=>{const e=b.dataset.e;b.classList.toggle("on", e===""?ui.estados.size===0:ui.estados.has(e));});
+}
+function renderCuotas(){
+  const rows=filteredRows(), s=sumRows(rows);
+  const card=(cls,l,v,sub)=>'<div class="card '+cls+'"><div class="l">'+l+'</div><div class="v">'+v+'</div>'+(sub?'<div class="s">'+sub+'</div>':'')+'</div>';
+  $("#cards").innerHTML=
+    card("main","Total a cobrar",money(s.total),"capital + interés")+
+    card("","Capital",money(s.capital))+
+    card("","Interés",money(s.interes))+
+    card("ok","Cobrado",money(s.cobrado),s.nPag+" cuota(s)")+
+    card("warn","Por vencer",money(s.porvencer),s.nPor+" cuota(s)")+
+    card("bad","Vencido",money(s.vencido),s.nVen+" cuota(s)")+
+    card("","Nº cuotas",String(s.n),s.nPag+" pagadas · "+(s.n-s.nPag)+" pendientes");
+  let t="Cuotas"+(ui.mes==="todos"?" · todos los meses":" · "+monthLabel(ui.mes));
+  if(ui.estados.size) t+=" · "+[...ui.estados].map(e=>ESTADO_LABEL[e]).join(", ");
+  if(ui.persona) t+=" · "+shortName(ui.persona);
+  $("#cuotasTitle").textContent=t;
+  const tb=$("#tblCuotas tbody");
+  if(!rows.length){tb.innerHTML='<tr><td colspan="10" class="empty">No hay cuotas con estos filtros.</td></tr>';return;}
+  tb.innerHTML=rows.map(r=>{
+    const {L,c}=r, k=L.id+"|"+c.n;
+    return '<tr class="is-'+r.estado+'">'+
+      '<td class="persona" data-l="Persona"><b title="'+esc(L.persona)+'">'+esc(shortName(L.persona))+'</b><small>C.I. '+esc(L.cedula||"—")+'</small></td>'+
+      '<td data-l="Préstamo">'+esc(loanLabel(L))+'</td>'+
+      '<td data-l="Cuota">'+c.n+'/'+L.cuotas.length+'</td>'+
+      '<td data-l="Fecha de pago">'+fmtDate(c.fecha)+'</td>'+
+      '<td class="num" data-l="Capital">'+money(c.capital)+'</td>'+
+      '<td class="num" data-l="Interés">'+money(c.interes)+'</td>'+
+      '<td class="num" data-l="Cuota"><b>'+money(r.total)+'</b></td>'+
+      '<td class="num" data-l="Saldo después">'+money(c.saldoFin)+'</td>'+
+      '<td data-l="Estado"><span class="badge b-'+r.estado+'">'+ESTADO_LABEL[r.estado]+'</span></td>'+
+      '<td data-l="Cobro"><div class="paybox">'+
+        '<label class="switch"><input type="checkbox" class="tgl" data-k="'+esc(k)+'"'+(c.pagado?" checked":"")+'><span class="t"></span><span>'+(c.pagado?"Pagado":"Pendiente")+'</span></label>'+
+        (c.pagado?'<input type="date" class="paydate" data-k="'+esc(k)+'" value="'+esc(c.fechaPagoReal||"")+'" title="Fecha real de pago'+(c.asumido?' (asumida)':'')+'">':'')+
+      '</div></td></tr>';
+  }).join("")+
+  '<tr class="total"><td class="persona" data-l="">Total ('+s.n+' cuotas)</td><td data-l="" class="hide-m"></td><td data-l=""></td><td data-l=""></td>'+
+  '<td class="num" data-l="Capital">'+money(s.capital)+'</td><td class="num" data-l="Interés">'+money(s.interes)+'</td><td class="num" data-l="Cuota">'+money(s.total)+'</td><td data-l=""></td>'+
+  '<td data-l="Cobrado">'+money(s.cobrado)+'</td><td data-l="Pendiente">'+money(s.pendiente)+'</td></tr>';
+  tb.querySelectorAll("tr.total td").forEach(td=>{if(td.dataset.l==="" && !td.classList.contains("persona")) td.classList.add("blank");});
+}
+function monthlySummary(){
+  const map=new Map();
+  allRows().forEach(r=>{const k=monthKey(r.c.fecha); if(!map.has(k)) map.set(k,[]); map.get(k).push(r);});
+  return [...map.keys()].sort().map(k=>Object.assign({mes:k},sumRows(map.get(k))));
+}
+function renderResumen(){
+  const ms=monthlySummary(); const tot=sumRows(allRows()); const cur=monthKey(HOY);
+  $("#tblResumen tbody").innerHTML=ms.map(m=>
+    '<tr class="clickable'+(m.mes===cur?" cur":"")+'" data-mes="'+m.mes+'">'+
+    '<td class="persona" data-l="Mes"><b>'+monthLabel(m.mes)+(m.mes===cur?' <span class="badge b-vigente">actual</span>':'')+'</b></td>'+
+    '<td class="num" data-l="Nº cuotas">'+m.n+'</td>'+
+    '<td class="num" data-l="Capital">'+money(m.capital)+'</td>'+
+    '<td class="num" data-l="Interés">'+money(m.interes)+'</td>'+
+    '<td class="num" data-l="Total esperado"><b>'+money(m.total)+'</b></td>'+
+    '<td class="num" data-l="Cobrado" style="color:var(--ok)">'+money(m.cobrado)+'</td>'+
+    '<td class="num" data-l="Pendiente">'+money(m.pendiente)+'</td>'+
+    '<td class="num" data-l="Vencido" style="color:'+(m.vencido>0?"var(--bad)":"inherit")+'">'+money(m.vencido)+'</td></tr>').join("")+
+    '<tr class="total"><td class="persona" data-l="">Total cartera</td><td class="num" data-l="Nº cuotas">'+tot.n+'</td><td class="num" data-l="Capital">'+money(tot.capital)+'</td><td class="num" data-l="Interés">'+money(tot.interes)+'</td><td class="num" data-l="Total esperado">'+money(tot.total)+'</td><td class="num" data-l="Cobrado">'+money(tot.cobrado)+'</td><td class="num" data-l="Pendiente">'+money(tot.pendiente)+'</td><td class="num" data-l="Vencido">'+money(tot.vencido)+'</td></tr>';
+}
+function renderPrestamos(){
+  const list=state.loans.map(L=>({L,s:loanStats(L)}))
+    .filter(x=>(ui.lEstado==="todos"||x.s.estado===ui.lEstado)&&(!ui.lPersona||x.L.persona===ui.lPersona))
+    .sort((a,b)=>a.L.transferencia.localeCompare(b.L.transferencia)||a.L.persona.localeCompare(b.L.persona));
+  const tb=$("#tblPrestamos tbody");
+  if(!list.length){tb.innerHTML='<tr><td colspan="11" class="empty">No hay préstamos con estos filtros.</td></tr>';return;}
+  let totCap=0,totSaldo=0,totInt=0;
+  tb.innerHTML=list.map(({L,s})=>{
+    totCap+=L.capital;totSaldo+=s.saldo;totInt+=s.interes;
+    const open=ui.open.has(L.id); const pct=s.total?Math.round(100*s.pagadas/s.total):0;
+    let h='<tr class="clickable'+(open?" open":"")+'" data-toggle="'+esc(L.id)+'">'+
+      '<td class="persona" data-l="Persona"><span class="caret">▸</span> <b style="display:inline">'+esc(L.persona)+'</b></td>'+
+      '<td data-l="Cédula">'+esc(L.cedula||"—")+'</td>'+
+      '<td class="num" data-l="Capital">'+money(L.capital)+'</td>'+
+      '<td class="num" data-l="Tasa">'+r2(L.tasa)+'% mensual</td>'+
+      '<td class="num" data-l="Plazo">'+L.plazo+' meses</td>'+
+      '<td data-l="Transferencia">'+fmtDate(L.transferencia)+'</td>'+
+      '<td data-l="Fecha fin">'+fmtDate(s.fin)+'</td>'+
+      '<td class="num" data-l="Saldo capital"><b>'+money(s.saldo)+'</b></td>'+
+      '<td class="num" data-l="Interés total">'+money(s.interes)+'</td>'+
+      '<td data-l="Estado"><div><span class="badge '+(s.estado==="pagado"?"b-pagado":"b-vigente")+'">'+(s.estado==="pagado"?"Pagado":"Vigente")+'</span>'+
+        (s.vencidas?' <span class="badge b-vencido">'+s.vencidas+' vencida'+(s.vencidas>1?"s":"")+'</span>':'')+
+        '<div class="progress" title="'+s.pagadas+' de '+s.total+' cuotas pagadas"><i style="width:'+pct+'%"></i></div><small class="muted">'+s.pagadas+'/'+s.total+' cuotas</small></div></td>'+
+      '<td data-l=""><div class="actions"><button class="btn sm" data-edit="'+esc(L.id)+'">Editar</button><button class="btn sm danger" data-del="'+esc(L.id)+'">Eliminar</button></div></td></tr>';
+    if(open && ui.cuotaEdit && ui.cuotaEdit.id===L.id){
+      h+='<tr class="expand"><td colspan="11"><div class="inner">'+renderCuotaEditor(L)+'</div></td></tr>';
+    } else if(open){
+      h+='<tr class="expand"><td colspan="11"><div class="inner">'+(L.nota?'<div class="note">'+esc(L.nota)+'</div>':'')+
+        '<div class="ce-bar"><b>Tabla de amortización</b><span class="spacer"></span><button class="btn sm" data-cedit="'+esc(L.id)+'">✎ Editar cuotas</button><button class="btn sm" data-edit="'+esc(L.id)+'">Editar préstamo</button></div>'+
+        '<table class="responsive"><thead><tr><th>Nº</th><th>Fecha de pago</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th><th>Estado</th><th>Cobro</th></tr></thead><tbody>'+
+        L.cuotas.map(c=>{const e=estadoDe(c),k=L.id+"|"+c.n;return '<tr class="is-'+e+'"><td data-l="Nº">'+c.n+'</td><td data-l="Fecha de pago">'+fmtDate(c.fecha)+'</td><td class="num" data-l="Saldo inicial">'+money(c.saldoIni)+'</td><td class="num" data-l="Capital">'+money(c.capital)+'</td><td class="num" data-l="Interés">'+money(c.interes)+'</td><td class="num" data-l="Cuota"><b>'+money(cuotaTotal(c))+'</b></td><td class="num" data-l="Saldo final">'+money(c.saldoFin)+'</td><td data-l="Estado"><span class="badge b-'+e+'">'+ESTADO_LABEL[e]+'</span></td><td data-l="Cobro"><div class="paybox"><label class="switch"><input type="checkbox" class="tgl" data-k="'+esc(k)+'"'+(c.pagado?" checked":"")+'><span class="t"></span><span>'+(c.pagado?"Pagado":"Pendiente")+'</span></label>'+(c.pagado?'<input type="date" class="paydate" data-k="'+esc(k)+'" value="'+esc(c.fechaPagoReal||"")+'">':'')+'</div></td></tr>';}).join("")+
+        '<tr class="total"><td data-l="">Total</td><td data-l=""></td><td data-l=""></td><td class="num" data-l="Capital">'+money(L.cuotas.reduce((a,c)=>a+c.capital,0))+'</td><td class="num" data-l="Interés">'+money(s.interes)+'</td><td class="num" data-l="Cuota">'+money(L.cuotas.reduce((a,c)=>a+cuotaTotal(c),0))+'</td><td data-l=""></td><td data-l=""></td><td data-l=""></td></tr>'+
+        '</tbody></table><p class="muted" style="margin:8px 0 0">Origen: '+esc(L.origen||"Manual")+'</p></div></td></tr>';
+    }
+    return h;
+  }).join("")+
+  '<tr class="total"><td class="persona" data-l="">'+list.length+' préstamo(s)</td><td data-l=""></td><td class="num" data-l="Capital">'+money(totCap)+'</td><td data-l=""></td><td data-l=""></td><td data-l=""></td><td data-l=""></td><td class="num" data-l="Saldo capital">'+money(totSaldo)+'</td><td class="num" data-l="Interés total">'+money(totInt)+'</td><td data-l=""></td><td data-l=""></td></tr>';
+}
+
+/* ---------- editor de cuotas ---------- */
+function startCuotaEdit(id){const L=state.loans.find(x=>x.id===id);if(!L)return;
+  ui.cuotaEdit={id,capital:r2(L.capital),rows:L.cuotas.map(c=>({fecha:c.fecha,capital:c.capital,interes:c.interes,pagado:!!c.pagado,fechaPagoReal:c.fechaPagoReal||"",asumido:!!c.asumido}))};
+  ui.open.add(id); renderPrestamos();}
+function ceCalc(){const d=ui.cuotaEdit;let saldo=d.capital;return d.rows.map(r=>{const ini=r2(saldo);saldo=r2(saldo-(+r.capital||0));return {ini,fin:saldo,total:r2((+r.capital||0)+(+r.interes||0))};});}
+function ceSummaryHtml(){const d=ui.cuotaEdit;const sc=r2(d.rows.reduce((a,r)=>a+(+r.capital||0),0)),si=r2(d.rows.reduce((a,r)=>a+(+r.interes||0),0));
+  const ok=Math.abs(sc-d.capital)<0.005;
+  return '<div class="ce-sum'+(ok?'':' bad')+'">'+d.rows.length+' cuotas · Suma capital '+money(sc)+(ok?' ✓':' ≠ capital del préstamo '+money(d.capital)+' (al guardar se te preguntará si actualizar el capital)')+' · Interés total '+money(si)+' · Total '+money(sc+si)+'</div>';}
+function renderCuotaEditor(L){
+  const d=ui.cuotaEdit, calc=ceCalc();
+  return '<div class="ce-bar"><b>Editando cuotas de '+esc(shortName(L.persona))+' · '+esc(loanLabel(L))+'</b><span class="spacer"></span>'+
+    '<button class="btn sm" data-ce-act="interes">Recalcular interés ('+r2(L.tasa)+'% × saldo)</button>'+
+    '<button class="btn sm" data-ce-act="capital">Capital igual en todas</button>'+
+    '<button class="btn sm" data-ce-act="add">＋ Agregar cuota</button></div>'+
+    '<table class="responsive ce"><thead><tr><th>Nº</th><th>Fecha de pago</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th><th>Estado</th><th>Fecha pago real</th><th></th></tr></thead><tbody>'+
+    d.rows.map((r,i)=>'<tr><td data-l="Nº">'+(i+1)+'</td>'+
+      '<td data-l="Fecha de pago"><input type="date" data-ce="fecha" data-i="'+i+'" value="'+esc(r.fecha)+'"></td>'+
+      '<td class="num" data-l="Saldo inicial" data-ce-ini="'+i+'">'+money(calc[i].ini)+'</td>'+
+      '<td class="num" data-l="Capital"><input type="number" step="0.01" min="0" data-ce="capital" data-i="'+i+'" value="'+r.capital+'"></td>'+
+      '<td class="num" data-l="Interés"><input type="number" step="0.01" min="0" data-ce="interes" data-i="'+i+'" value="'+r.interes+'"></td>'+
+      '<td class="num" data-l="Cuota" data-ce-tot="'+i+'"><b>'+money(calc[i].total)+'</b></td>'+
+      '<td class="num" data-l="Saldo final" data-ce-fin="'+i+'">'+money(calc[i].fin)+'</td>'+
+      '<td data-l="Estado"><select data-ce="pagado" data-i="'+i+'"><option value="0"'+(r.pagado?'':' selected')+'>Pendiente</option><option value="1"'+(r.pagado?' selected':'')+'>Pagado</option></select></td>'+
+      '<td data-l="Fecha pago real"><input type="date" data-ce="fechaPagoReal" data-i="'+i+'" value="'+esc(r.fechaPagoReal)+'"'+(r.pagado?'':' disabled')+'></td>'+
+      '<td data-l=""><button class="btn sm danger" data-ce-del="'+i+'" title="Eliminar cuota">🗑</button></td></tr>').join("")+
+    '</tbody></table><div id="ceSum">'+ceSummaryHtml()+'</div>'+
+    '<div class="ce-bar" style="margin-top:10px"><span class="spacer"></span><button class="btn sm" data-ce-act="cancel">Cancelar</button><button class="btn sm pri" data-ce-act="save">Guardar cuotas</button></div>';
+}
+function ceRefresh(){const calc=ceCalc();calc.forEach((c,i)=>{const a=document.querySelector('[data-ce-ini="'+i+'"]'),b=document.querySelector('[data-ce-fin="'+i+'"]'),t=document.querySelector('[data-ce-tot="'+i+'"]');
+  if(a)a.textContent=money(c.ini);if(b)b.textContent=money(c.fin);if(t)t.innerHTML='<b>'+money(c.total)+'</b>';});const s=$("#ceSum");if(s)s.innerHTML=ceSummaryHtml();}
+function ceInput(el){const d=ui.cuotaEdit;if(!d)return;const i=+el.dataset.i,f=el.dataset.ce,r=d.rows[i];if(!r)return;
+  if(f==="capital"||f==="interes"){r[f]=r2(parseFloat(el.value)||0);}
+  else if(f==="pagado"){r.pagado=el.value==="1";const fd=document.querySelector('input[data-ce="fechaPagoReal"][data-i="'+i+'"]');
+    if(r.pagado&&!r.fechaPagoReal){r.fechaPagoReal=HOY;}if(!r.pagado)r.fechaPagoReal="";r.asumido=false;if(fd){fd.disabled=!r.pagado;fd.value=r.fechaPagoReal;}}
+  else {r[f]=el.value; if(f==="fechaPagoReal")r.asumido=false;}
+  ceRefresh();}
+function ceAction(act,L){const d=ui.cuotaEdit;
+  if(act==="cancel"){ui.cuotaEdit=null;renderPrestamos();return;}
+  if(act==="add"){const last=d.rows[d.rows.length-1];d.rows.push({fecha:last?addMonthsISO(last.fecha,1):addMonthsISO(L.transferencia,1),capital:0,interes:0,pagado:false,fechaPagoReal:""});}
+  if(act==="interes"){let s=d.capital;d.rows.forEach(r=>{r.interes=r2(s*L.tasa/100);s=r2(s-r.capital);});}
+  if(act==="capital"){const n=d.rows.length;if(!n)return;const b=r2(d.capital/n);let s=d.capital;d.rows.forEach((r,i)=>{r.capital=i===n-1?r2(s):b;s=r2(s-r.capital);});}
+  if(act==="save"){
+    if(!d.rows.length){alert("El préstamo debe tener al menos una cuota. Si quieres quitarlo, usa Eliminar.");return;}
+    if(d.rows.some(r=>!/^\d{4}-\d{2}-\d{2}$/.test(r.fecha))){alert("Todas las cuotas necesitan fecha de pago.");return;}
+    const sc=r2(d.rows.reduce((a,r)=>a+r.capital,0));
+    if(Math.abs(sc-d.capital)>=0.005){if(!confirm("La suma del capital de las cuotas ("+money(sc)+") no coincide con el capital del préstamo ("+money(d.capital)+").\n¿Guardar y actualizar el capital del préstamo a "+money(sc)+"?"))return;L.capital=sc;}
+    const calc=(function(){let s=L.capital;return d.rows.map(r=>{const ini=r2(s);s=r2(s-r.capital);return {ini,fin:s};});})();
+    L.cuotas=d.rows.map((r,i)=>({n:i+1,fecha:r.fecha,saldoIni:calc[i].ini,capital:r2(r.capital),interes:r2(r.interes),saldoFin:calc[i].fin,pagado:r.pagado,fechaPagoReal:r.pagado?(r.fechaPagoReal||HOY):null,asumido:r.pagado&&!!r.asumido}));
+    L.plazo=L.cuotas.length; ui.cuotaEdit=null; save(); renderAll(); toast("Cuotas guardadas");return;}
+  renderPrestamos();
+}
+
+/* ---------- acciones ---------- */
+function findCuota(k){const i=k.lastIndexOf("|");const id=k.slice(0,i),n=+k.slice(i+1);const L=state.loans.find(x=>x.id===id);return L?{L,c:L.cuotas.find(c=>c.n===n)}:null;}
+function setPagado(k,val){const f=findCuota(k); if(!f||!f.c) return; f.c.pagado=val; f.c.fechaPagoReal=val?HOY:null; f.c.asumido=false; save(); renderAll();
+  toast((val?"Cuota marcada como pagada: ":"Cuota marcada como pendiente: ")+shortName(f.L.persona)+" "+f.c.n+"/"+f.L.cuotas.length+" ("+money(cuotaTotal(f.c))+")");}
+function setFechaPago(k,v){const f=findCuota(k); if(!f||!f.c) return; f.c.fechaPagoReal=v||null; f.c.asumido=false; save(); toast("Fecha de pago actualizada: "+(v?fmtDate(v):"sin fecha"));}
+function showTab(t){ui.tab=t;document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
+  ["cuotas","resumen","prestamos"].forEach(x=>{$("#tab-"+x).hidden=(x!==t);});}
+let toastT=null;
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2600);}
+function download(name,content,type){const b=new Blob([content],{type});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
+function csvCell(v){v=String(v==null?"":v);return /[",;\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function buildCsv(rows){
+  const head=["Persona","Cédula","Préstamo (capital)","Fecha transferencia","Cuota Nº","Total cuotas","Fecha de pago","Capital","Interés","Cuota","Saldo después","Estado","Fecha pago real"];
+  const lines=[head.map(csvCell).join(",")];
+  rows.forEach(r=>lines.push([r.L.persona,r.L.cedula,r2(r.L.capital).toFixed(2),fmtDate(r.L.transferencia),r.c.n,r.L.cuotas.length,fmtDate(r.c.fecha),r.c.capital.toFixed(2),r.c.interes.toFixed(2),r.total.toFixed(2),r.c.saldoFin.toFixed(2),ESTADO_LABEL[r.estado],r.c.pagado?fmtDate(r.c.fechaPagoReal):""].map(csvCell).join(",")));
+  return "\ufeff"+lines.join("\r\n");
+}
+function validLoans(d){
+  const loans=Array.isArray(d)?d:(d&&d.loans);
+  if(!Array.isArray(loans)) return null;
+  for(const L of loans){if(!L||typeof L.id!=="string"||typeof L.persona!=="string"||!Array.isArray(L.cuotas)||typeof L.capital!=="number") return null;
+    for(const c of L.cuotas){if(typeof c.n!=="number"||!/^\d{4}-\d{2}-\d{2}$/.test(c.fecha)||typeof c.capital!=="number"||typeof c.interes!=="number") return null;}}
+  return loans;
+}
+
+/* ---------- formulario préstamo ---------- */
+function openForm(id){
+  ui.editId=id||null; ui.primeraTocada=!!id; ui.regenTocado=false;
+  const L=id?state.loans.find(x=>x.id===id):null;
+  $("#mTitle").textContent=L?"Editar préstamo":"Nuevo préstamo";
+  $("#iPersona").value=L?L.persona:""; $("#iCedula").value=L?(L.cedula||""):"";
+  $("#iCapital").value=L?L.capital:""; $("#iTasa").value=L?L.tasa:"15"; $("#iMeses").value=L?L.plazo:"4";
+  $("#iTransf").value=L?L.transferencia:HOY;
+  $("#iPrimera").value=L?(L.cuotas[0]?L.cuotas[0].fecha:addMonthsISO(L.transferencia,1)):addMonthsISO(HOY,1);
+  $("#iNota").value=L?(L.nota||""):"";
+  $("#regenRow").hidden=!L; $("#iRegen").checked=false;
+  ui.formOrig=L?{capital:r2(L.capital),tasa:r2(L.tasa),plazo:L.plazo,primera:L.cuotas[0]?L.cuotas[0].fecha:""}:null;
+  $("#mErr").textContent=""; updatePreview();
+  $("#modalBg").classList.add("show"); setTimeout(()=>$("#iPersona").focus(),30);
+}
+function closeForm(){$("#modalBg").classList.remove("show");ui.editId=null;}
+function readForm(){
+  const f={persona:$("#iPersona").value.trim().replace(/\s+/g," "),cedula:$("#iCedula").value.trim(),capital:r2(parseFloat($("#iCapital").value)),tasa:r2(parseFloat($("#iTasa").value)),
+    plazo:parseInt($("#iMeses").value,10),transferencia:$("#iTransf").value,primera:$("#iPrimera").value,nota:$("#iNota").value.trim()};
+  let err="";
+  if(!f.persona) err="Escribe el nombre de la persona.";
+  else if(!(f.capital>0)) err="El capital debe ser mayor a 0.";
+  else if(!(f.tasa>=0)) err="La tasa debe ser 0 o mayor.";
+  else if(!(f.plazo>=1&&f.plazo<=120)) err="El número de meses debe estar entre 1 y 120.";
+  else if(!f.transferencia) err="Indica la fecha de transferencia.";
+  else if(!f.primera) err="Indica la fecha de la primera cuota.";
+  return {f,err};
+}
+function updatePreview(){
+  const {f,err}=readForm(); const box=$("#mPreview");
+  if(!(f.capital>0)||!(f.tasa>=0)||!(f.plazo>=1&&f.plazo<=120)||!f.primera){box.innerHTML='<div class="empty">Completa capital, tasa, meses y fechas para ver la tabla de amortización.</div>';return;}
+  if(ui.editId && ui.formOrig){
+    const o=ui.formOrig, changed=o.capital!==f.capital||o.tasa!==f.tasa||o.plazo!==f.plazo||o.primera!==f.primera;
+    if(changed && !ui.regenTocado) $("#iRegen").checked=true;
+    if(!$("#iRegen").checked){box.innerHTML='<div class="empty">Se mantendrá la tabla de amortización actual'+(changed?' (aunque cambiaste capital, tasa, meses o primera cuota)':'')+'. Marca “Recalcular” para ver la nueva tabla.</div>';return;}
+  }
+  const cs=generarCuotas(f.capital,f.tasa,f.plazo,f.primera); const ti=r2(cs.reduce((a,c)=>a+c.interes,0));
+  box.innerHTML='<table><thead><tr><th>Nº</th><th>Fecha</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th></tr></thead><tbody>'+
+    cs.map(c=>'<tr><td>'+c.n+'</td><td>'+fmtDate(c.fecha)+'</td><td class="num">'+money(c.saldoIni)+'</td><td class="num">'+money(c.capital)+'</td><td class="num">'+money(c.interes)+'</td><td class="num">'+money(cuotaTotal(c))+'</td><td class="num">'+money(c.saldoFin)+'</td></tr>').join("")+
+    '<tr class="total"><td colspan="3">Total</td><td class="num">'+money(f.capital)+'</td><td class="num">'+money(ti)+'</td><td class="num">'+money(f.capital+ti)+'</td><td></td></tr></tbody></table>';
+}
+function saveForm(){
+  const {f,err}=readForm(); if(err){$("#mErr").textContent=err;return;}
+  if(ui.editId){
+    const L=state.loans.find(x=>x.id===ui.editId); if(!L){closeForm();return;}
+    if($("#iRegen").checked){
+      if(!confirm("Se volverá a generar la tabla de amortización de este préstamo con los nuevos datos.\nLos pagos marcados se conservan por número de cuota.\n\n¿Continuar?")) return;
+      const old=new Map(L.cuotas.map(c=>[c.n,c]));
+      L.cuotas=generarCuotas(f.capital,f.tasa,f.plazo,f.primera).map(c=>{const o=old.get(c.n);if(o&&o.pagado){c.pagado=true;c.fechaPagoReal=o.fechaPagoReal;c.asumido=!!o.asumido;}return c;});
+      L.origen=(L.origen||"Manual")+" · tabla regenerada";
+    }
+    else if(L.cuotas[0] && L.cuotas[0].fecha!==f.primera && confirm("¿Mover también las fechas de todas las cuotas para que la primera sea el "+fmtDate(f.primera)+"? (montos sin cambios)")){
+      L.cuotas.forEach((c,i)=>{c.fecha=addMonthsISO(f.primera,i);});
+    }
+    Object.assign(L,{persona:f.persona,cedula:f.cedula,capital:f.capital,tasa:f.tasa,plazo:f.plazo,transferencia:f.transferencia,nota:f.nota});
+    if(ui.cuotaEdit&&ui.cuotaEdit.id===L.id) ui.cuotaEdit=null;
+    toast("Préstamo actualizado");
+  } else {
+    const L={id:"P"+Date.now().toString(36),persona:f.persona,cedula:f.cedula,capital:f.capital,tasa:f.tasa,plazo:f.plazo,transferencia:f.transferencia,nota:f.nota,origen:"Manual",cuotas:generarCuotas(f.capital,f.tasa,f.plazo,f.primera)};
+    state.loans.push(L); ui.open.add(L.id); toast("Préstamo agregado: "+shortName(L.persona)+" "+money(L.capital));
+  }
+  save(); closeForm(); renderAll();
+}
+
+/* ---------- eventos ---------- */
+function bind(){
+  $("#hoyLabel").textContent="Hoy: "+fmtDate(HOY);
+  $("#tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-tab]");if(b)showTab(b.dataset.tab);});
+  $("#fMes").addEventListener("change",e=>{ui.mes=e.target.value;renderCuotas();});
+  $("#fPersona").addEventListener("change",e=>{ui.persona=e.target.value;renderCuotas();});
+  $("#fQ").addEventListener("input",e=>{ui.q=e.target.value;renderCuotas();});
+  $("#fEstado").addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;const v=b.dataset.e;
+    if(!v) ui.estados.clear(); else if(ui.estados.has(v)) ui.estados.delete(v); else ui.estados.add(v);
+    if(ui.estados.size===3) ui.estados.clear(); renderFilterOptions(); renderCuotas();});
+  document.querySelector(".quick").addEventListener("click",e=>{const b=e.target.closest("[data-q]");if(!b)return;const q=b.dataset.q;
+    if(q==="este"){ui.mes=monthKey(HOY);ui.estados.clear();}
+    else if(q==="proximo"){ui.mes=addMonthsKey(monthKey(HOY),1);ui.estados.clear();}
+    else if(q==="vencidos"){ui.mes="todos";ui.estados=new Set(["vencido"]);}
+    else {ui.mes="todos";ui.estados.clear();ui.persona="";ui.q="";$("#fQ").value="";}
+    renderFilterOptions();renderCuotas();});
+  document.addEventListener("input",e=>{if(e.target.matches("[data-ce]"))ceInput(e.target);});
+  document.addEventListener("change",e=>{
+    if(e.target.matches("[data-ce]")){ceInput(e.target);return;}
+    if(e.target.matches("input.tgl")) setPagado(e.target.dataset.k,e.target.checked);
+    else if(e.target.matches("input.paydate")) setFechaPago(e.target.dataset.k,e.target.value);
+  });
+  $("#tblResumen").addEventListener("click",e=>{const tr=e.target.closest("tr[data-mes]");if(!tr)return;ui.mes=tr.dataset.mes;ui.estados.clear();renderFilterOptions();renderCuotas();showTab("cuotas");window.scrollTo({top:0,behavior:"smooth"});});
+  $("#tblPrestamos").addEventListener("click",e=>{
+    const ed=e.target.closest("[data-edit]"), del=e.target.closest("[data-del]");
+    if(ed){openForm(ed.dataset.edit);return;}
+    const ce=e.target.closest("[data-cedit]"); if(ce){startCuotaEdit(ce.dataset.cedit);return;}
+    const ca=e.target.closest("[data-ce-act]"), cd=e.target.closest("[data-ce-del]");
+    if((ca||cd)&&ui.cuotaEdit){const L=state.loans.find(x=>x.id===ui.cuotaEdit.id);if(!L)return;
+      if(cd){const i=+cd.dataset.ceDel;if(confirm("¿Quitar la cuota "+(i+1)+"? (se aplica al guardar)")){ui.cuotaEdit.rows.splice(i,1);renderPrestamos();}return;}
+      ceAction(ca.dataset.ceAct,L);return;}
+    if(del){const L=state.loans.find(x=>x.id===del.dataset.del);if(!L)return;
+      if(ui.cuotaEdit&&ui.cuotaEdit.id===L.id)ui.cuotaEdit=null;
+      if(confirm("¿Eliminar el préstamo de "+L.persona+" por "+money(L.capital)+" (transferencia "+fmtDate(L.transferencia)+")?\nSe borrarán sus "+L.cuotas.length+" cuotas. Esta acción no se puede deshacer (salvo con un respaldo JSON).")){
+        state.loans=state.loans.filter(x=>x.id!==L.id);ui.open.delete(L.id);save();renderAll();toast("Préstamo eliminado");}
+      return;}
+    if(e.target.closest(".expand")||e.target.closest("input,label,button,a")) return;
+    const tr=e.target.closest("tr[data-toggle]"); if(tr){const id=tr.dataset.toggle; ui.open.has(id)?ui.open.delete(id):ui.open.add(id); renderPrestamos();}
+  });
+  $("#lEstado").addEventListener("change",e=>{ui.lEstado=e.target.value;renderPrestamos();});
+  $("#lPersona").addEventListener("change",e=>{ui.lPersona=e.target.value;renderPrestamos();});
+  $("#btnNuevo").addEventListener("click",()=>openForm(null));
+  $("#mClose").addEventListener("click",closeForm); $("#mCancel").addEventListener("click",closeForm);
+  $("#modalBg").addEventListener("click",e=>{if(e.target.id==="modalBg")closeForm();});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#modalBg").classList.contains("show"))closeForm();});
+  $("#mSave").addEventListener("click",saveForm);
+  $("#loanForm").addEventListener("submit",e=>{e.preventDefault();saveForm();});
+  $("#iRegen").addEventListener("change",()=>{ui.regenTocado=true;updatePreview();});
+  $("#iPrimera").addEventListener("input",()=>{ui.primeraTocada=true;updatePreview();});
+  $("#iTransf").addEventListener("input",()=>{const v=$("#iTransf").value;if(v&&!ui.primeraTocada)$("#iPrimera").value=addMonthsISO(v,1);updatePreview();});
+  ["#iCapital","#iTasa","#iMeses"].forEach(s=>$(s).addEventListener("input",updatePreview));
+  $("#iPersona").addEventListener("change",()=>{const p=$("#iPersona").value.trim();const L=state.loans.find(x=>x.persona.toLowerCase()===p.toLowerCase());if(L&&!$("#iCedula").value)$("#iCedula").value=L.cedula||"";});
+  $("#btnCsv").addEventListener("click",()=>{const rows=filteredRows();if(!rows.length){toast("No hay cuotas para exportar");return;}
+    download("cuotas-"+(ui.mes==="todos"?"todas":ui.mes)+"-"+HOY+".csv",buildCsv(rows),"text/csv;charset=utf-8");toast("CSV exportado ("+rows.length+" cuotas)");});
+  $("#btnExportJson").addEventListener("click",()=>{download("prestamos-respaldo-"+HOY+".json",JSON.stringify({app:"control-prestamos",version:1,seedVersion:state.seedVersion||SEED_VERSION,exportado:new Date().toISOString(),loans:state.loans},null,1),"application/json");toast("Respaldo descargado");});
+  $("#btnImportJson").addEventListener("click",()=>$("#fileImport").click());
+  $("#fileImport").addEventListener("change",e=>{const file=e.target.files[0];if(!file)return;const rd=new FileReader();
+    rd.onload=()=>{try{const parsed=JSON.parse(rd.result);const loans=validLoans(parsed);if(!loans)throw new Error("formato no reconocido");
+      if(!confirm("Se reemplazarán los datos actuales por los del respaldo ("+loans.length+" préstamos). ¿Continuar?"))return;
+      state={version:1,seedVersion:Number(parsed&&parsed.seedVersion)||SEED_VERSION,loans};ui.open.clear();ui.cuotaEdit=null;save();renderAll();
+      toast("Respaldo importado: "+loans.length+" préstamos · guardando en GitHub…");}
+      catch(err){alert("No se pudo importar el archivo: "+err.message);} finally{e.target.value="";}};
+    rd.readAsText(file);});
+  $("#btnSync").addEventListener("click",async()=>{const ok=await syncFromRemote();if(ok)toast("Datos sincronizados con GitHub");});
+  $("#btnSettings").addEventListener("click",openSettings);
+  $("#syncStatus").addEventListener("click",()=>{if(sync.dirty)push();else openSettings();});
+  $("#sClose").addEventListener("click",()=>$("#setBg").classList.remove("show"));
+  $("#setBg").addEventListener("click",e=>{if(e.target.id==="setBg")$("#setBg").classList.remove("show");});
+  $("#sSync").addEventListener("click",async()=>{$("#setBg").classList.remove("show");const ok=await syncFromRemote();if(ok)toast("Datos sincronizados con GitHub");});
+  $("#sDisconnect").addEventListener("click",disconnect);
+  $("#cGo").addEventListener("click",connect);
+  $("#cToken").addEventListener("keydown",e=>{if(e.key==="Enter")connect();});
+  window.addEventListener("online",()=>{if(sync.dirty&&getToken())push();});
+  window.addEventListener("beforeunload",e=>{if(sync.dirty||sync.busy){e.preventDefault();e.returnValue="";}});
+}
+(function start(){
+  const c=readCache(); if(c){state=c.state; sync.sha=c.sha||null; sync.dirty=!!c.dirty; sync.lastOk=c.lastOk||null;}
+  bind(); renderAll();
+  if(!getToken()){showConnect();return;}
+  syncFromRemote();
+})();
+window.__app={sync,push,syncFromRemote,GH_OWNER,GH_REPO,SEED_VERSION,state:()=>state,ui,HOY,filteredRows,sumRows,monthlySummary,loanStats,generarCuotas,renderAll,buildCsv};
+</script>
+</body>
+</html>
