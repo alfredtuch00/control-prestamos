@@ -76,6 +76,7 @@ tr.clickable{cursor:pointer}
 .b-porvencer{background:var(--warn-soft);color:var(--warn)}
 .b-vencido{background:var(--bad-soft);color:var(--bad)}
 .b-interes{background:#e6ebf2;color:#46566d}
+small.cargo{color:#8a5a00;font-weight:600;white-space:nowrap}
 .b-liquidado{background:#dff3ef;color:#0f6b5c}
 .b-abono{background:#e9e8fb;color:#4338ca}
 tr.is-liquidado td,tr.is-abono td{color:#55606f}
@@ -303,7 +304,7 @@ a.btn{color:inherit;text-decoration:none}
       <div class="tablewrap">
         <table class="responsive" id="tblResumen">
           <thead><tr>
-            <th>Mes</th><th class="num">Nº cuotas</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Total esperado</th>
+            <th>Mes</th><th class="num">Nº cuotas</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cargos</th><th class="num">Total esperado</th>
             <th class="num">Cobrado</th><th class="num">Pendiente</th><th class="num">Vencido</th>
           </tr></thead>
           <tbody></tbody>
@@ -365,6 +366,8 @@ a.btn{color:inherit;text-decoration:none}
           <div class="field"><label for="iPrimera">Fecha primera cuota</label><input id="iPrimera" type="date" required></div>
           <div class="field"><label>&nbsp;</label><span class="muted">Capital igual cada mes; interés = tasa × saldo inicial.</span></div>
           <div class="field span3"><label for="iNota">Nota (opcional)</label><input id="iNota"></div>
+          <div class="span3"><label class="regen" style="align-items:center"><input type="checkbox" id="iCargoOn"><span><b>Cargo por retiro con tarjeta</b> en la cuota 1 (se suma a esa cuota y se cobra con ella)</span></label>
+            <div class="grid-form" id="cargoRow" hidden style="margin-top:6px"><div class="field"><label for="iCargo">Cargo ($)</label><input id="iCargo" type="number" min="0" step="0.01"></div><div class="field span2"><label for="iCargoDesc">Descripción</label><input id="iCargoDesc" placeholder="Retiro con tarjeta"></div></div></div>
           <div class="span3" id="regenRow" hidden><label class="regen"><input type="checkbox" id="iRegen"><span><b>Recalcular la tabla de amortización</b> con capital, tasa, meses y primera cuota de arriba (capital igual cada mes, interés = tasa × saldo). Los pagos marcados se conservan por número de cuota. Si no lo marcas, solo se guardan los datos del préstamo y las cuotas quedan como están (puedes editarlas una por una en la pestaña Préstamos → Editar cuotas).</span></label></div>
         </div>
         <datalist id="dlPersonas"></datalist>
@@ -447,7 +450,11 @@ function addMonthsISO(iso,n){
   return yy+"-"+pad(mm+1)+"-"+pad(Math.min(d,last));
 }
 function shortName(n){if(/[()]/.test(String(n||"")))return String(n).trim();const t=String(n||"").trim().split(/\s+/);return t.length>=4?t[0]+" "+t[2]:t.length===3?t[0]+" "+t[1]:String(n||"");}
-function cuotaTotal(c){return r2(c.capital+c.interes);}
+const cargoDe = c => r2(+c.cargo||0);
+function cuotaTotal(c){return r2(c.capital+c.interes+cargoDe(c));}
+const CARGO_DEF = "Retiro con tarjeta";
+/* Nota bajo el valor de la cuota cuando tiene un cargo adicional (p. ej. retiro con tarjeta). */
+function cargoNote(c){return cargoDe(c)>0?'<br><small class="cargo" title="Cargo adicional incluido en la cuota">incl. cargo '+money(cargoDe(c))+' · '+esc(c.cargoDesc||CARGO_DEF)+'</small>':(c.cargoAplazado>0?'<br><small class="muted">cargo '+money(c.cargoAplazado)+' pasa a la cuota siguiente</small>':'');}
 /* Cuota pagada solo con interés: tipo="interes" (capital 0, saldo sin cambio; el capital aplazado pasa a la cuota siguiente). */
 const esSoloInteres = c => !!c.pagado && c.tipo==="interes";
 const TIPO_ESTADO = {interes:"interes", liquidacion:"liquidado", abono:"abono"};
@@ -670,7 +677,8 @@ function loanStats(L){
   const regular=n-extras.length, liq=extras.find(c=>c.tipo==="liquidacion")||null, abonos=extras.filter(c=>c.tipo==="abono");
   const plazoOrig=Number(L.plazo)>0?Number(L.plazo):regular-ext;
   let finOrig=fin; const conFin=extras.find(c=>c.finAntes); if(conFin) finOrig=conFin.finAntes; else if(ext&&n-1-ext>=0) finOrig=L.cuotas[n-1-ext].fecha;
-  return {saldo:r2(L.capital-pagadoCap), interes:r2(interes), pagadas, total:n, vencidas, fin, ext, plazoOrig, plazoAct:regular, finOrig, liq, abonos:abonos.length, estado: pagadas===n?"pagado":"vigente"};
+  const cargo=r2(L.cuotas.reduce((a,c)=>a+cargoDe(c),0)), cargoCob=r2(L.cuotas.filter(c=>c.pagado).reduce((a,c)=>a+cargoDe(c),0));
+  return {cargo, cargoCob, saldo:r2(L.capital-pagadoCap), interes:r2(interes), pagadas, total:n, vencidas, fin, ext, plazoOrig, plazoAct:regular, finOrig, liq, abonos:abonos.length, estado: pagadas===n?"pagado":"vigente"};
 }
 function loanLabel(L){return money(L.capital)+" · "+fmtDate(L.transferencia);}
 function allRows(){
@@ -686,17 +694,17 @@ function filteredRows(){
     if(ui.estados.size && !ui.estados.has(r.estado) && !(ui.estados.has("anticipado")&&(r.estado==="liquidado"||r.estado==="abono"))) return false;
     if(ui.persona && r.L.persona!==ui.persona) return false;
     if(q){
-      const hay=[r.L.persona,r.L.cedula,loanLabel(r.L),fmtDate(r.c.fecha),money(r.total),money(r.c.capital),money(r.c.interes),ESTADO_LABEL[r.estado],String(r.total)].join(" ").toLowerCase();
+      const hay=[r.L.persona,r.L.cedula,loanLabel(r.L),fmtDate(r.c.fecha),money(r.total),money(r.c.capital),money(r.c.interes),ESTADO_LABEL[r.estado],String(r.total),cargoDe(r.c)?"cargo "+(r.c.cargoDesc||CARGO_DEF)+" "+money(cargoDe(r.c)):""].join(" ").toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
   });
 }
 function sumRows(rows){
-  const s={n:rows.length,total:0,capital:0,interes:0,cobrado:0,pendiente:0,porvencer:0,vencido:0,nPag:0,nVen:0,nPor:0,nInt:0,soloInteres:0,nAnt:0};
-  rows.forEach(r=>{s.total+=r.total;s.capital+=r.c.capital;s.interes+=r.c.interes;
+  const s={n:rows.length,total:0,capital:0,interes:0,cobrado:0,pendiente:0,porvencer:0,vencido:0,nPag:0,nVen:0,nPor:0,nInt:0,soloInteres:0,nAnt:0,cargo:0,cargoCob:0,nCargo:0};
+  rows.forEach(r=>{s.total+=r.total;s.capital+=r.c.capital;s.interes+=r.c.interes;const cg=cargoDe(r.c);if(cg>0){s.cargo+=cg;s.nCargo++;if(cobrada(r.estado))s.cargoCob+=cg;}
     if(cobrada(r.estado)){s.cobrado+=r.total;s.nPag++;if(r.estado==="interes"){s.nInt++;s.soloInteres+=r.total;}if(r.estado==="liquidado"||r.estado==="abono")s.nAnt++;} else {s.pendiente+=r.total; if(r.estado==="vencido"){s.vencido+=r.total;s.nVen++;} else {s.porvencer+=r.total;s.nPor++;}}});
-  for(const k of ["total","capital","interes","cobrado","pendiente","porvencer","vencido","soloInteres"]) s[k]=r2(s[k]);
+  for(const k of ["total","capital","interes","cobrado","pendiente","porvencer","vencido","soloInteres","cargo","cargoCob"]) s[k]=r2(s[k]);
   return s;
 }
 function personas(){return [...new Set(state.loans.map(L=>L.persona))].sort((a,b)=>a.localeCompare(b));}
@@ -736,9 +744,10 @@ function renderCuotas(){
   const rows=filteredRows(), s=sumRows(rows);
   const card=(cls,l,v,sub)=>'<div class="card '+cls+'"><div class="l">'+l+'</div><div class="v">'+v+'</div>'+(sub?'<div class="s">'+sub+'</div>':'')+'</div>';
   $("#cards").innerHTML=
-    card("main","Total a cobrar",money(s.total),"capital + interés")+
+    card("main","Total a cobrar",money(s.total),"capital + interés"+(s.cargo?" + cargos":""))+
     card("","Capital",money(s.capital))+
     card("","Interés",money(s.interes))+
+    (s.cargo?card("","Cargos adicionales",money(s.cargo),s.nCargo+" cargo(s) · cobrado "+money(s.cargoCob)):"")+
     card("ok","Cobrado",money(s.cobrado),s.nPag+" cuota(s)"+(s.nInt?" · "+s.nInt+" solo interés":"")+(s.nAnt?" · "+s.nAnt+" anticipado":""))+
     card("warn","Por vencer",money(s.porvencer),s.nPor+" cuota(s)")+
     card("bad","Vencido",money(s.vencido),s.nVen+" cuota(s)")+
@@ -762,13 +771,13 @@ function renderCuotas(){
       '<td data-l="Fecha de pago">'+fmtDate(c.fecha)+'</td>'+
       '<td class="num" data-l="Capital">'+money(c.capital)+'</td>'+
       '<td class="num" data-l="Interés">'+money(c.interes)+'</td>'+
-      '<td class="num" data-l="Cuota"><b>'+money(r.total)+'</b></td>'+
+      '<td class="num" data-l="Cuota"><b>'+money(r.total)+'</b>'+cargoNote(c)+'</td>'+
       '<td class="num" data-l="Saldo después">'+money(c.saldoFin)+'</td>'+
       '<td data-l="Estado"><span class="badge b-'+r.estado+'">'+ESTADO_LABEL[r.estado]+'</span></td>'+
       '<td data-l="Cobro">'+cobroCell(L,c)+'</td></tr>';
   }).join("")+
   '<tr class="total"><td class="persona" data-l="">Total ('+s.n+' cuotas)</td><td data-l="" class="hide-m"></td><td data-l=""></td><td data-l=""></td>'+
-  '<td class="num" data-l="Capital">'+money(s.capital)+'</td><td class="num" data-l="Interés">'+money(s.interes)+'</td><td class="num" data-l="Cuota">'+money(s.total)+'</td><td class="num" data-l="Saldo después" title="'+esc(saldoTip)+'"><span style="border-bottom:1px dotted currentColor;cursor:help">'+money(saldoTot)+'</span></td>'+
+  '<td class="num" data-l="Capital">'+money(s.capital)+'</td><td class="num" data-l="Interés">'+money(s.interes)+'</td><td class="num" data-l="Cuota">'+money(s.total)+(s.cargo?'<br><small class="cargo">incl. cargos '+money(s.cargo)+'</small>':'')+'</td><td class="num" data-l="Saldo después" title="'+esc(saldoTip)+'"><span style="border-bottom:1px dotted currentColor;cursor:help">'+money(saldoTot)+'</span></td>'+
   '<td data-l="Cobrado">'+money(s.cobrado)+'</td><td data-l="Pendiente">'+money(s.pendiente)+'</td></tr>';
   tb.querySelectorAll("tr.total td").forEach(td=>{if(td.dataset.l==="" && !td.classList.contains("persona")) td.classList.add("blank");});
 }
@@ -785,11 +794,12 @@ function renderResumen(){
     '<td class="num" data-l="Nº cuotas">'+m.n+'</td>'+
     '<td class="num" data-l="Capital">'+money(m.capital)+'</td>'+
     '<td class="num" data-l="Interés">'+money(m.interes)+'</td>'+
+    '<td class="num" data-l="Cargos">'+(m.cargo?money(m.cargo):'<span class="muted">—</span>')+'</td>'+
     '<td class="num" data-l="Total esperado"><b>'+money(m.total)+'</b></td>'+
     '<td class="num" data-l="Cobrado" style="color:var(--ok)">'+money(m.cobrado)+'</td>'+
     '<td class="num" data-l="Pendiente">'+money(m.pendiente)+'</td>'+
     '<td class="num" data-l="Vencido" style="color:'+(m.vencido>0?"var(--bad)":"inherit")+'">'+money(m.vencido)+'</td></tr>').join("")+
-    '<tr class="total"><td class="persona" data-l="">Total cartera</td><td class="num" data-l="Nº cuotas">'+tot.n+'</td><td class="num" data-l="Capital">'+money(tot.capital)+'</td><td class="num" data-l="Interés">'+money(tot.interes)+'</td><td class="num" data-l="Total esperado">'+money(tot.total)+'</td><td class="num" data-l="Cobrado">'+money(tot.cobrado)+'</td><td class="num" data-l="Pendiente">'+money(tot.pendiente)+'</td><td class="num" data-l="Vencido">'+money(tot.vencido)+'</td></tr>';
+    '<tr class="total"><td class="persona" data-l="">Total cartera</td><td class="num" data-l="Nº cuotas">'+tot.n+'</td><td class="num" data-l="Capital">'+money(tot.capital)+'</td><td class="num" data-l="Interés">'+money(tot.interes)+'</td><td class="num" data-l="Cargos">'+money(tot.cargo)+'</td><td class="num" data-l="Total esperado">'+money(tot.total)+'</td><td class="num" data-l="Cobrado">'+money(tot.cobrado)+'</td><td class="num" data-l="Pendiente">'+money(tot.pendiente)+'</td><td class="num" data-l="Vencido">'+money(tot.vencido)+'</td></tr>';
 }
 function renderPrestamos(){
   const list=state.loans.map(L=>({L,s:loanStats(L)}))
@@ -819,13 +829,14 @@ function renderPrestamos(){
       h+='<tr class="expand"><td colspan="11"><div class="inner">'+renderCuotaEditor(L)+'</div></td></tr>';
     } else if(open){
       h+='<tr class="expand"><td colspan="11"><div class="inner">'+(L.nota?'<div class="note">'+esc(L.nota)+'</div>':'')+
+        (s.cargo?'<div class="note" style="background:#fff6e5;border-color:#f0d6a0;color:#6b4500">Cargos adicionales: <b>'+money(s.cargo)+'</b> ('+L.cuotas.filter(c=>cargoDe(c)>0).map(c=>esc(c.cargoDesc||CARGO_DEF)+' en cuota '+c.n).join(', ')+') · cobrado '+money(s.cargoCob)+' · pendiente '+money(s.cargo-s.cargoCob)+'. El cargo se cobra junto con su cuota.</div>':'')+
         (s.liq?'<div class="note" style="background:#e9f6f3;border-color:#bfe3da;color:#0f5246">Liquidación anticipada el '+fmtDate(s.liq.fecha)+': se cobró '+money(cuotaTotal(s.liq))+' (capital '+money(s.liq.capital)+' + interés '+money(s.liq.interes)+') y se dejaron de generar '+money(s.liq.interesAhorrado||0)+' de interés futuro. Para deshacer, toca “↺ Deshacer liquidación”.</div>':'')+
         (s.abonos?'<div class="note" style="background:#efeefe;border-color:#d4d1f7;color:#3730a3">Tiene '+s.abonos+' abono(s) extra a capital: el saldo bajó y el interés futuro se recalculó. Para deshacer, toca “↺ Deshacer abono”.</div>':'')+
         (s.ext?'<div class="note" style="background:#eef1f5;border-color:#d5dbe4;color:#3c4a5e">Plazo extendido de '+(s.total-s.ext)+' a '+s.total+' meses por '+s.ext+' pago(s) de solo interés. Fecha fin: '+fmtDate(s.fin)+' (antes '+fmtDate(s.finOrig)+'). Para deshacer, toca “↺ Deshacer” en la cuota de “Solo interés”.</div>':'')+
         '<div class="ce-bar"><b>Tabla de amortización</b><span class="spacer"></span><button class="btn sm" data-cedit="'+esc(L.id)+'">✎ Editar cuotas</button><button class="btn sm" data-edit="'+esc(L.id)+'">Editar préstamo</button></div>'+
         '<table class="responsive"><thead><tr><th>Nº</th><th>Fecha de pago</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th><th>Estado</th><th>Cobro</th></tr></thead><tbody>'+
-        L.cuotas.map(c=>{const e=estadoDe(c),k=L.id+"|"+c.n;return '<tr class="is-'+e+'"><td data-l="Nº">'+c.n+'</td><td data-l="Fecha de pago">'+fmtDate(c.fecha)+'</td><td class="num" data-l="Saldo inicial">'+money(c.saldoIni)+'</td><td class="num" data-l="Capital">'+money(c.capital)+'</td><td class="num" data-l="Interés">'+money(c.interes)+'</td><td class="num" data-l="Cuota"><b>'+money(cuotaTotal(c))+'</b></td><td class="num" data-l="Saldo final">'+money(c.saldoFin)+'</td><td data-l="Estado"><span class="badge b-'+e+'">'+ESTADO_LABEL[e]+'</span>'+(esSoloInteres(c)?'<br><small class="muted">capital '+money(c.capitalAplazado||0)+' aplazado</small>':'')+(c.tipo==="liquidacion"?'<br><small class="muted">liquidación anticipada</small>':'')+(c.tipo==="abono"?'<br><small class="muted">abono a capital</small>':'')+'</td><td data-l="Cobro">'+cobroCell(L,c)+'</td></tr>';}).join("")+
-        '<tr class="total"><td data-l="">Total</td><td data-l=""></td><td data-l=""></td><td class="num" data-l="Capital">'+money(L.cuotas.reduce((a,c)=>a+c.capital,0))+'</td><td class="num" data-l="Interés">'+money(s.interes)+'</td><td class="num" data-l="Cuota">'+money(L.cuotas.reduce((a,c)=>a+cuotaTotal(c),0))+'</td><td data-l=""></td><td data-l=""></td><td data-l=""></td></tr>'+
+        L.cuotas.map(c=>{const e=estadoDe(c),k=L.id+"|"+c.n;return '<tr class="is-'+e+'"><td data-l="Nº">'+c.n+'</td><td data-l="Fecha de pago">'+fmtDate(c.fecha)+'</td><td class="num" data-l="Saldo inicial">'+money(c.saldoIni)+'</td><td class="num" data-l="Capital">'+money(c.capital)+'</td><td class="num" data-l="Interés">'+money(c.interes)+'</td><td class="num" data-l="Cuota"><b>'+money(cuotaTotal(c))+'</b>'+cargoNote(c)+'</td><td class="num" data-l="Saldo final">'+money(c.saldoFin)+'</td><td data-l="Estado"><span class="badge b-'+e+'">'+ESTADO_LABEL[e]+'</span>'+(esSoloInteres(c)?'<br><small class="muted">capital '+money(c.capitalAplazado||0)+' aplazado</small>':'')+(c.tipo==="liquidacion"?'<br><small class="muted">liquidación anticipada</small>':'')+(c.tipo==="abono"?'<br><small class="muted">abono a capital</small>':'')+'</td><td data-l="Cobro">'+cobroCell(L,c)+'</td></tr>';}).join("")+
+        '<tr class="total"><td data-l="">Total</td><td data-l=""></td><td data-l=""></td><td class="num" data-l="Capital">'+money(L.cuotas.reduce((a,c)=>a+c.capital,0))+'</td><td class="num" data-l="Interés">'+money(s.interes)+'</td><td class="num" data-l="Cuota">'+money(L.cuotas.reduce((a,c)=>a+cuotaTotal(c),0))+(s.cargo?'<br><small class="cargo">incl. cargos '+money(s.cargo)+'</small>':'')+'</td><td data-l=""></td><td data-l=""></td><td data-l=""></td></tr>'+
         '</tbody></table><p class="muted" style="margin:8px 0 0">Origen: '+esc(L.origen||"Manual")+'</p></div></td></tr>';
     }
     return h;
@@ -835,24 +846,25 @@ function renderPrestamos(){
 
 /* ---------- editor de cuotas ---------- */
 function startCuotaEdit(id){const L=state.loans.find(x=>x.id===id);if(!L)return;
-  ui.cuotaEdit={id,capital:r2(L.capital),rows:L.cuotas.map(c=>({orig:c,fecha:c.fecha,capital:c.capital,interes:c.interes,pagado:!!c.pagado,tipo:c.tipo||"",capitalAplazado:c.capitalAplazado,fechaPagoReal:c.fechaPagoReal||"",asumido:!!c.asumido}))};
+  ui.cuotaEdit={id,capital:r2(L.capital),rows:L.cuotas.map(c=>({orig:c,fecha:c.fecha,capital:c.capital,interes:c.interes,pagado:!!c.pagado,tipo:c.tipo||"",capitalAplazado:c.capitalAplazado,cargo:cargoDe(c),cargoDesc:c.cargoDesc||"",fechaPagoReal:c.fechaPagoReal||"",asumido:!!c.asumido}))};
   ui.open.add(id); renderPrestamos();}
-function ceCalc(){const d=ui.cuotaEdit;let saldo=d.capital;return d.rows.map(r=>{const ini=r2(saldo);saldo=r2(saldo-(+r.capital||0));return {ini,fin:saldo,total:r2((+r.capital||0)+(+r.interes||0))};});}
-function ceSummaryHtml(){const d=ui.cuotaEdit;const sc=r2(d.rows.reduce((a,r)=>a+(+r.capital||0),0)),si=r2(d.rows.reduce((a,r)=>a+(+r.interes||0),0));
+function ceCalc(){const d=ui.cuotaEdit;let saldo=d.capital;return d.rows.map(r=>{const ini=r2(saldo);saldo=r2(saldo-(+r.capital||0));return {ini,fin:saldo,total:r2((+r.capital||0)+(+r.interes||0)+(+r.cargo||0))};});}
+function ceSummaryHtml(){const d=ui.cuotaEdit;const sc=r2(d.rows.reduce((a,r)=>a+(+r.capital||0),0)),si=r2(d.rows.reduce((a,r)=>a+(+r.interes||0),0)),sg=r2(d.rows.reduce((a,r)=>a+(+r.cargo||0),0));
   const ok=Math.abs(sc-d.capital)<0.005;
-  return '<div class="ce-sum'+(ok?'':' bad')+'">'+d.rows.length+' cuotas · Suma capital '+money(sc)+(ok?' ✓':' ≠ capital del préstamo '+money(d.capital)+' (al guardar se te preguntará si actualizar el capital)')+' · Interés total '+money(si)+' · Total '+money(sc+si)+'</div>';}
+  return '<div class="ce-sum'+(ok?'':' bad')+'">'+d.rows.length+' cuotas · Suma capital '+money(sc)+(ok?' ✓':' ≠ capital del préstamo '+money(d.capital)+' (al guardar se te preguntará si actualizar el capital)')+' · Interés total '+money(si)+(sg?' · Cargos '+money(sg):'')+' · Total '+money(sc+si+sg)+'</div>';}
 function renderCuotaEditor(L){
   const d=ui.cuotaEdit, calc=ceCalc();
   return '<div class="ce-bar"><b>Editando cuotas de '+esc(shortName(L.persona))+' · '+esc(loanLabel(L))+'</b><span class="spacer"></span>'+
     '<button class="btn sm" data-ce-act="interes">Recalcular interés ('+r2(L.tasa)+'% × saldo)</button>'+
     '<button class="btn sm" data-ce-act="capital">Capital igual en todas</button>'+
     '<button class="btn sm" data-ce-act="add">＋ Agregar cuota</button></div>'+
-    '<table class="responsive ce"><thead><tr><th>Nº</th><th>Fecha de pago</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th><th>Estado</th><th>Fecha pago real</th><th></th></tr></thead><tbody>'+
+    '<table class="responsive ce"><thead><tr><th>Nº</th><th>Fecha de pago</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num" title="Cargo adicional (p. ej. retiro con tarjeta)">Cargo</th><th class="num">Cuota</th><th class="num">Saldo final</th><th>Estado</th><th>Fecha pago real</th><th></th></tr></thead><tbody>'+
     d.rows.map((r,i)=>'<tr><td data-l="Nº">'+(i+1)+'</td>'+
       '<td data-l="Fecha de pago"><input type="date" data-ce="fecha" data-i="'+i+'" value="'+esc(r.fecha)+'"></td>'+
       '<td class="num" data-l="Saldo inicial" data-ce-ini="'+i+'">'+money(calc[i].ini)+'</td>'+
       '<td class="num" data-l="Capital"><input type="number" step="0.01" min="0" data-ce="capital" data-i="'+i+'" value="'+r.capital+'"></td>'+
       '<td class="num" data-l="Interés"><input type="number" step="0.01" min="0" data-ce="interes" data-i="'+i+'" value="'+r.interes+'"></td>'+
+      '<td class="num" data-l="Cargo"><input type="number" step="0.01" min="0" data-ce="cargo" data-i="'+i+'" value="'+(r.cargo||"")+'" placeholder="0" title="Cargo adicional (opcional)"><input data-ce="cargoDesc" data-i="'+i+'" value="'+esc(r.cargoDesc||"")+'" placeholder="'+CARGO_DEF+'" style="margin-top:3px;font-size:11px"'+(r.cargo?'':' hidden')+'></td>'+
       '<td class="num" data-l="Cuota" data-ce-tot="'+i+'"><b>'+money(calc[i].total)+'</b></td>'+
       '<td class="num" data-l="Saldo final" data-ce-fin="'+i+'">'+money(calc[i].fin)+'</td>'+
       '<td data-l="Estado"><select data-ce="pagado" data-i="'+i+'"><option value="0"'+(r.pagado?'':' selected')+'>Pendiente</option><option value="1"'+(r.pagado&&!r.tipo?' selected':'')+'>Pagado</option><option value="2"'+(r.pagado&&r.tipo==="interes"?' selected':'')+'>Solo interés</option>'+(r.tipo==="liquidacion"||r.tipo==="abono"?'<option value="x"'+(r.pagado?' selected':'')+'>'+(r.tipo==="liquidacion"?"Liquidado":"Abono extra")+'</option>':'')+'</select></td>'+
@@ -864,7 +876,7 @@ function renderCuotaEditor(L){
 function ceRefresh(){const calc=ceCalc();calc.forEach((c,i)=>{const a=document.querySelector('[data-ce-ini="'+i+'"]'),b=document.querySelector('[data-ce-fin="'+i+'"]'),t=document.querySelector('[data-ce-tot="'+i+'"]');
   if(a)a.textContent=money(c.ini);if(b)b.textContent=money(c.fin);if(t)t.innerHTML='<b>'+money(c.total)+'</b>';});const s=$("#ceSum");if(s)s.innerHTML=ceSummaryHtml();}
 function ceInput(el){const d=ui.cuotaEdit;if(!d)return;const i=+el.dataset.i,f=el.dataset.ce,r=d.rows[i];if(!r)return;
-  if(f==="capital"||f==="interes"){r[f]=r2(parseFloat(el.value)||0);}
+  if(f==="capital"||f==="interes"||f==="cargo"){r[f]=r2(parseFloat(el.value)||0);if(f==="cargo"){const de=document.querySelector('input[data-ce="cargoDesc"][data-i="'+i+'"]');if(de)de.hidden=!(r.cargo>0);}}
   else if(f==="pagado"){r.pagado=el.value!=="0";r.tipo=el.value==="2"?"interes":el.value==="x"?(r.orig&&r.orig.tipo||""):"";const fd=document.querySelector('input[data-ce="fechaPagoReal"][data-i="'+i+'"]');
     if(r.pagado&&!r.fechaPagoReal){r.fechaPagoReal=HOY;}if(!r.pagado)r.fechaPagoReal="";r.asumido=false;if(fd){fd.disabled=!r.pagado;fd.value=r.fechaPagoReal;}}
   else {r[f]=el.value; if(f==="fechaPagoReal")r.asumido=false;}
@@ -880,12 +892,12 @@ function ceAction(act,L){const d=ui.cuotaEdit;
     const sc=r2(d.rows.reduce((a,r)=>a+r.capital,0));
     if(Math.abs(sc-d.capital)>=0.005){if(!confirm("La suma del capital de las cuotas ("+money(sc)+") no coincide con el capital del préstamo ("+money(d.capital)+").\n¿Guardar y actualizar el capital del préstamo a "+money(sc)+"?"))return;L.capital=sc;}
     const calc=(function(){let s=L.capital;return d.rows.map(r=>{const ini=r2(s);s=r2(s-r.capital);return {ini,fin:s};});})();
-    L.cuotas=d.rows.map((r,i)=>Object.assign({n:i+1,fecha:r.fecha,saldoIni:calc[i].ini,capital:r2(r.capital),interes:r2(r.interes),saldoFin:calc[i].fin,pagado:r.pagado,fechaPagoReal:r.pagado?(r.fechaPagoReal||HOY):null,asumido:r.pagado&&!!r.asumido},r.pagado&&r.tipo?extraFields(r):{}));
+    L.cuotas=d.rows.map((r,i)=>Object.assign({n:i+1,fecha:r.fecha,saldoIni:calc[i].ini,capital:r2(r.capital),interes:r2(r.interes),saldoFin:calc[i].fin,pagado:r.pagado,fechaPagoReal:r.pagado?(r.fechaPagoReal||HOY):null,asumido:r.pagado&&!!r.asumido},r.cargo>0?{cargo:r2(r.cargo),cargoDesc:(r.cargoDesc||"").trim()||CARGO_DEF}:{},r.pagado&&r.tipo?extraFields(r):{}));
     if(!L.cuotas.some(esExtra)) L.plazo=L.cuotas.length-L.cuotas.filter(esSoloInteres).length; ui.cuotaEdit=null; save(); renderAll(); toast("Cuotas guardadas");return;}
   renderPrestamos();
 }
 
-function extraFields(r){const o={tipo:r.tipo};if(r.tipo==="interes")o.capitalAplazado=r.capitalAplazado;
+function extraFields(r){const o={tipo:r.tipo};if(r.tipo==="interes"){o.capitalAplazado=r.capitalAplazado;if(r.orig&&r.orig.cargoAplazado)o.cargoAplazado=r.orig.cargoAplazado;}
   if(r.orig&&r.orig.tipo===r.tipo)["nota","reemplazadas","antes","finAntes","interesAhorrado"].forEach(k=>{if(r.orig[k]!==undefined)o[k]=r.orig[k];});return o;}
 /* ---------- cobro: abonar (completo / solo interés), deshacer ---------- */
 function cobroCell(L,c){
@@ -911,6 +923,7 @@ function pagarSoloInteres(k){
   if(laterPaid(L,idx)){alert("No se puede registrar solo interés: hay cuotas posteriores ya pagadas. Desmárcalas primero.");return;}
   const fechas=L.cuotas.map(x=>x.fecha), ultima=addMonthsISO(fechas[fechas.length-1],1);
   const nueva={n:0,fecha:c.fecha,saldoIni:c.saldoIni,capital:c.capital,interes:c.interes,saldoFin:c.saldoFin,pagado:false,fechaPagoReal:null,asumido:false};
+  if(cargoDe(c)>0){nueva.cargo=cargoDe(c);nueva.cargoDesc=c.cargoDesc||CARGO_DEF;c.cargoAplazado=cargoDe(c);delete c.cargo;delete c.cargoDesc;} // el cargo queda pendiente junto con el capital
   const capAplazado=c.capital;
   c.capitalAplazado=capAplazado; c.capital=0; c.interes=r2(c.saldoIni*L.tasa/100); c.saldoFin=c.saldoIni;
   c.pagado=true; c.tipo="interes"; c.fechaPagoReal=HOY; c.asumido=false;
@@ -944,8 +957,8 @@ function openAbono(btn){
   const f=findCuota(btn.dataset.abonar);if(!f||!f.c)return;const {L,c}=f,idx=L.cuotas.indexOf(c),blocked=laterPaid(L,idx);
   const m=$("#abonoMenu"), k=btn.dataset.abonar, intOnly=r2(c.saldoIni*L.tasa/100);
   m.innerHTML='<div class="hd">Abonar cuota '+c.n+'/'+L.cuotas.length+' · '+esc(shortName(L.persona))+' · '+fmtDate(c.fecha)+'</div>'+
-    '<button type="button" data-pay="completo" data-k="'+esc(k)+'"><span>Pago completo<small>Capital '+money(c.capital)+' + interés '+money(c.interes)+'</small></span><b>'+money(cuotaTotal(c))+'</b></button>'+
-    '<button type="button" data-pay="interes" data-k="'+esc(k)+'"'+(blocked||!(c.capital>0)?' disabled':'')+'><span>Solo interés<small>El capital '+money(c.capital)+' se corre un mes (+1 mes de plazo)</small></span><b>'+money(intOnly)+'</b></button>'+
+    '<button type="button" data-pay="completo" data-k="'+esc(k)+'"><span>Pago completo<small>Capital '+money(c.capital)+' + interés '+money(c.interes)+(cargoDe(c)?' + cargo '+money(cargoDe(c)):'')+'</small></span><b>'+money(cuotaTotal(c))+'</b></button>'+
+    '<button type="button" data-pay="interes" data-k="'+esc(k)+'"'+(blocked||!(c.capital>0)?' disabled':'')+'><span>Solo interés<small>El capital '+money(c.capital)+(cargoDe(c)?' y el cargo '+money(cargoDe(c)):'')+' se corre'+(cargoDe(c)?'n':'')+' un mes (+1 mes de plazo)</small></span><b>'+money(intOnly)+'</b></button>'+
     (blocked?'<div class="note2">Solo interés no disponible: hay cuotas posteriores pagadas.</div>':'');
   m.hidden=false;
   const r=btn.getBoundingClientRect(), mw=m.offsetWidth, mh=m.offsetHeight;
@@ -964,11 +977,11 @@ function situacion(L){
   for(const i of idx){const c=L.cuotas[i]; if(c.fecha<HOY){C.push(i);continue;} if(monthKey(c.fecha)===cur&&!C.some(j=>L.cuotas[j].fecha>=HOY))C.push(i); break;}
   const saldo=r2(idx.reduce((a,i)=>a+L.cuotas[i].capital,0));
   const intC=r2(C.reduce((a,i)=>a+L.cuotas[i].interes,0)), nVenc=C.filter(i=>L.cuotas[i].fecha<HOY).length;
-  const after=idx.filter(i=>!C.includes(i));
+  const after=idx.filter(i=>!C.includes(i)), cargos=r2(idx.reduce((a,i)=>a+cargoDe(L.cuotas[i]),0));
   const futuro=r2(after.reduce((a,i)=>a+L.cuotas[i].interes,0));
   const startAfter=C.length?C[C.length-1]+1:idx[0];
   const abonable=after.length>0 && L.cuotas.slice(startAfter).every(c=>!c.pagado);
-  return {L,id:L.id,tasa:Number(L.tasa)||0,saldo,intC,nVenc,pago:r2(saldo+intC),ahorro:futuro,nC:C.length,nAfter:after.length,
+  return {L,id:L.id,tasa:Number(L.tasa)||0,saldo,intC,nVenc,cargos,pago:r2(saldo+intC+cargos),ahorro:futuro,nC:C.length,nAfter:after.length,
     afterCaps:after.map(i=>L.cuotas[i].capital),afterIni:after.length?L.cuotas[after[0]].saldoIni:0,afterCap:r2(after.reduce((a,i)=>a+L.cuotas[i].capital,0)),startAfter,abonable,
     fin:L.cuotas[L.cuotas.length-1].fecha};
 }
@@ -1018,14 +1031,14 @@ function aplicarLiquidacion(L,fecha){
   const finAntes=L.cuotas[L.cuotas.length-1].fecha;
   const rep=[];L.cuotas.forEach((c,i)=>{if(!c.pagado)rep.push({i,c:JSON.parse(JSON.stringify(c))});});
   L.cuotas=L.cuotas.filter(c=>c.pagado);
-  L.cuotas.push({n:0,fecha,saldoIni:s.saldo,capital:s.saldo,interes:s.intC,saldoFin:0,pagado:true,fechaPagoReal:fecha,asumido:false,tipo:"liquidacion",nota:"Liquidación anticipada",interesAhorrado:s.ahorro,finAntes,reemplazadas:rep});
+  L.cuotas.push({n:0,fecha,saldoIni:s.saldo,capital:s.saldo,interes:s.intC,...(s.cargos>0?{cargo:s.cargos,cargoDesc:"Cargos pendientes"}:{}),saldoFin:0,pagado:true,fechaPagoReal:fecha,asumido:false,tipo:"liquidacion",nota:"Liquidación anticipada",interesAhorrado:s.ahorro,finAntes,reemplazadas:rep});
   renumber(L); recalcFrom(L,0); return s;
 }
 function aplicarAbono(L,monto,fecha){
   const s=situacion(L); if(!s||!s.abonable) return null; const A=r2(Math.min(monto,s.afterCap)); if(!(A>0)) return null;
   const k=s.startAfter, finAntes=L.cuotas[L.cuotas.length-1].fecha, antes=JSON.parse(JSON.stringify(L.cuotas.slice(k)));
   const intAntes=r2(antes.reduce((a,c)=>a+c.interes,0));
-  let left=A; for(let i=L.cuotas.length-1;i>=k&&left>0.0001;i--){const c=L.cuotas[i];const tk=Math.min(left,c.capital);c.capital=r2(c.capital-tk);left=r2(left-tk);if(c.capital<=0.004)L.cuotas.splice(i,1);}
+  let left=A; for(let i=L.cuotas.length-1;i>=k&&left>0.0001;i--){const c=L.cuotas[i];const tk=Math.min(left,c.capital);c.capital=r2(c.capital-tk);left=r2(left-tk);if(c.capital<=0.004&&!(cargoDe(c)>0))L.cuotas.splice(i,1);}
   L.cuotas.splice(k,0,{n:0,fecha,saldoIni:0,capital:A,interes:0,saldoFin:0,pagado:true,fechaPagoReal:fecha,asumido:false,tipo:"abono",nota:"Abono extra a capital",finAntes,antes});
   renumber(L); recalcFrom(L,0);
   const intDesp=r2(L.cuotas.slice(k+1).reduce((a,c)=>a+c.interes,0)); L.cuotas[k].interesAhorrado=r2(intAntes-intDesp);
@@ -1058,7 +1071,7 @@ function renderAsistente(){
   const p=planActual(); if(!p.sits.length){out.innerHTML='<div class="panel" style="margin-top:14px"><div class="empty">No hay préstamos vigentes.</div></div>';return;}
   const card=(cls,l,v,sub)=>'<div class="card '+cls+'"><div class="l">'+l+'</div><div class="v">'+v+'</div>'+(sub?'<div class="s">'+sub+'</div>':'')+'</div>';
   let sug='';
-  p.liq.forEach(s=>{sug+='<li class="liq">✔ <b>Liquidar '+esc(s.L.persona)+'</b>: pagas '+money(s.pago)+' (capital '+money(s.saldo)+(s.intC>0?' + interés '+(s.nVenc?(s.nVenc<s.nC?'vencido y de este mes ':'vencido '):'de este mes ')+money(s.intC):'')+') y te ahorras <b>'+money(s.ahorro)+'</b> de interés futuro'+(s.nAfter?' ('+s.nAfter+' cuota'+(s.nAfter>1?'s':'')+' menos)':'')+'. Tasa '+r2(s.tasa)+'% mensual.</li>';});
+  p.liq.forEach(s=>{sug+='<li class="liq">✔ <b>Liquidar '+esc(s.L.persona)+'</b>: pagas '+money(s.pago)+' (capital '+money(s.saldo)+(s.cargos>0?' + cargo '+money(s.cargos):'')+(s.intC>0?' + interés '+(s.nVenc?(s.nVenc<s.nC?'vencido y de este mes ':'vencido '):'de este mes ')+money(s.intC):'')+') y te ahorras <b>'+money(s.ahorro)+'</b> de interés futuro'+(s.nAfter?' ('+s.nAfter+' cuota'+(s.nAfter>1?'s':'')+' menos)':'')+'. Tasa '+r2(s.tasa)+'% mensual.</li>';});
   if(p.abono){const s=p.abono.s, nuevoSaldo=r2(s.saldo-p.abono.monto); sug+='<li class="abo">➕ <b>Abono extra de '+money(p.abono.monto)+' a '+esc(s.L.persona)+'</b>: su saldo baja de '+money(s.saldo)+' a '+money(nuevoSaldo)+' y te ahorras <b>'+money(p.abono.ahorro)+'</b> de interés futuro (se acortan las últimas cuotas).</li>';}
   if(!p.liq.length&&!p.abono) sug+='<li class="info">Con este monto no alcanza para liquidar ningún préstamo ni conviene un abono.</li>';
   if(p.sobrante>=0.01) sug+='<li class="info">Sobrante sin asignar: '+money(p.sobrante)+(p.sobrante<1?' (muy pequeño para abonar)':'')+'.</li>';
@@ -1088,7 +1101,7 @@ function renderAsistente(){
 function miniTabla(L,desde){
   const rows=L.cuotas.slice(desde);
   return '<table class="responsive"><thead><tr><th>Nº</th><th>Fecha</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th><th>Estado</th></tr></thead><tbody>'+
-    rows.map(c=>{const e=estadoDe(c);return '<tr class="is-'+e+'"><td data-l="Nº">'+c.n+'</td><td data-l="Fecha">'+fmtDate(c.fecha)+'</td><td class="num" data-l="Saldo inicial">'+money(c.saldoIni)+'</td><td class="num" data-l="Capital">'+money(c.capital)+'</td><td class="num" data-l="Interés">'+money(c.interes)+'</td><td class="num" data-l="Cuota"><b>'+money(cuotaTotal(c))+'</b></td><td class="num" data-l="Saldo final">'+money(c.saldoFin)+'</td><td data-l="Estado"><span class="badge b-'+e+'">'+ESTADO_LABEL[e]+'</span></td></tr>';}).join("")+'</tbody></table>';
+    rows.map(c=>{const e=estadoDe(c);return '<tr class="is-'+e+'"><td data-l="Nº">'+c.n+'</td><td data-l="Fecha">'+fmtDate(c.fecha)+'</td><td class="num" data-l="Saldo inicial">'+money(c.saldoIni)+'</td><td class="num" data-l="Capital">'+money(c.capital)+'</td><td class="num" data-l="Interés">'+money(c.interes)+'</td><td class="num" data-l="Cuota"><b>'+money(cuotaTotal(c))+'</b>'+cargoNote(c)+'</td><td class="num" data-l="Saldo final">'+money(c.saldoFin)+'</td><td data-l="Estado"><span class="badge b-'+e+'">'+ESTADO_LABEL[e]+'</span></td></tr>';}).join("")+'</tbody></table>';
 }
 function renderPreview(p){
   const copia=clone(state.loans), res=aplicarPlan(copia,p), antes=totalesCartera(state.loans), desp=totalesCartera(copia);
@@ -1128,9 +1141,9 @@ function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show"
 function download(name,content,type){const b=new Blob([content],{type});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
 function csvCell(v){v=String(v==null?"":v);return /[",;\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
 function buildCsv(rows){
-  const head=["Persona","Cédula","Préstamo (capital)","Fecha transferencia","Cuota Nº","Total cuotas","Fecha de pago","Capital","Interés","Cuota","Saldo después","Estado","Fecha pago real"];
+  const head=["Persona","Cédula","Préstamo (capital)","Fecha transferencia","Cuota Nº","Total cuotas","Fecha de pago","Capital","Interés","Cargo adicional","Descripción cargo","Cuota","Saldo después","Estado","Fecha pago real"];
   const lines=[head.map(csvCell).join(",")];
-  rows.forEach(r=>lines.push([r.L.persona,r.L.cedula,r2(r.L.capital).toFixed(2),fmtDate(r.L.transferencia),r.c.n,r.L.cuotas.length,fmtDate(r.c.fecha),r.c.capital.toFixed(2),r.c.interes.toFixed(2),r.total.toFixed(2),r.c.saldoFin.toFixed(2),ESTADO_LABEL[r.estado],r.c.pagado?fmtDate(r.c.fechaPagoReal):""].map(csvCell).join(",")));
+  rows.forEach(r=>lines.push([r.L.persona,r.L.cedula,r2(r.L.capital).toFixed(2),fmtDate(r.L.transferencia),r.c.n,r.L.cuotas.length,fmtDate(r.c.fecha),r.c.capital.toFixed(2),r.c.interes.toFixed(2),cargoDe(r.c)?cargoDe(r.c).toFixed(2):"",cargoDe(r.c)?(r.c.cargoDesc||CARGO_DEF):"",r.total.toFixed(2),r.c.saldoFin.toFixed(2),ESTADO_LABEL[r.estado],r.c.pagado?fmtDate(r.c.fechaPagoReal):""].map(csvCell).join(",")));
   return "\ufeff"+lines.join("\r\n");
 }
 function validLoans(d){
@@ -1152,6 +1165,7 @@ function openForm(id){
   $("#iPrimera").value=L?(L.cuotas[0]?L.cuotas[0].fecha:addMonthsISO(L.transferencia,1)):addMonthsISO(HOY,1);
   $("#iNota").value=L?(L.nota||""):"";
   $("#regenRow").hidden=!L; $("#iRegen").checked=false;
+  const c1=L&&L.cuotas[0]; $("#iCargoOn").checked=!!(c1&&cargoDe(c1)>0); $("#iCargo").value=c1&&cargoDe(c1)>0?cargoDe(c1):""; $("#iCargoDesc").value=c1&&c1.cargoDesc||CARGO_DEF; $("#cargoRow").hidden=!$("#iCargoOn").checked;
   ui.formOrig=L?{capital:r2(L.capital),tasa:r2(L.tasa),plazo:L.plazo,primera:L.cuotas[0]?L.cuotas[0].fecha:""}:null;
   $("#mErr").textContent=""; updatePreview();
   $("#modalBg").classList.add("show"); setTimeout(()=>$("#iPersona").focus(),30);
@@ -1159,7 +1173,8 @@ function openForm(id){
 function closeForm(){$("#modalBg").classList.remove("show");ui.editId=null;}
 function readForm(){
   const f={persona:$("#iPersona").value.trim().replace(/\s+/g," "),cedula:$("#iCedula").value.trim(),capital:r2(parseFloat($("#iCapital").value)),tasa:r2(parseFloat($("#iTasa").value)),
-    plazo:parseInt($("#iMeses").value,10),transferencia:$("#iTransf").value,primera:$("#iPrimera").value,nota:$("#iNota").value.trim()};
+    plazo:parseInt($("#iMeses").value,10),transferencia:$("#iTransf").value,primera:$("#iPrimera").value,nota:$("#iNota").value.trim(),
+    cargo:$("#iCargoOn").checked?r2(parseFloat($("#iCargo").value)||0):0,cargoDesc:$("#iCargoDesc").value.trim()||CARGO_DEF};
   let err="";
   if(!f.persona) err="Escribe el nombre de la persona.";
   else if(!(f.capital>0)) err="El capital debe ser mayor a 0.";
@@ -1167,6 +1182,7 @@ function readForm(){
   else if(!(f.plazo>=1&&f.plazo<=120)) err="El número de meses debe estar entre 1 y 120.";
   else if(!f.transferencia) err="Indica la fecha de transferencia.";
   else if(!f.primera) err="Indica la fecha de la primera cuota.";
+  else if($("#iCargoOn").checked&&!(f.cargo>0)) err="Escribe el valor del cargo por retiro con tarjeta (o desmarca la opción).";
   return {f,err};
 }
 function updatePreview(){
@@ -1177,11 +1193,12 @@ function updatePreview(){
     if(changed && !ui.regenTocado) $("#iRegen").checked=true;
     if(!$("#iRegen").checked){box.innerHTML='<div class="empty">Se mantendrá la tabla de amortización actual'+(changed?' (aunque cambiaste capital, tasa, meses o primera cuota)':'')+'. Marca “Recalcular” para ver la nueva tabla.</div>';return;}
   }
-  const cs=generarCuotas(f.capital,f.tasa,f.plazo,f.primera); const ti=r2(cs.reduce((a,c)=>a+c.interes,0));
+  const cs=generarCuotas(f.capital,f.tasa,f.plazo,f.primera); setCargo1(cs,f); const ti=r2(cs.reduce((a,c)=>a+c.interes,0)), tg=r2(cs.reduce((a,c)=>a+cargoDe(c),0));
   box.innerHTML='<table><thead><tr><th>Nº</th><th>Fecha</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th></tr></thead><tbody>'+
-    cs.map(c=>'<tr><td>'+c.n+'</td><td>'+fmtDate(c.fecha)+'</td><td class="num">'+money(c.saldoIni)+'</td><td class="num">'+money(c.capital)+'</td><td class="num">'+money(c.interes)+'</td><td class="num">'+money(cuotaTotal(c))+'</td><td class="num">'+money(c.saldoFin)+'</td></tr>').join("")+
-    '<tr class="total"><td colspan="3">Total</td><td class="num">'+money(f.capital)+'</td><td class="num">'+money(ti)+'</td><td class="num">'+money(f.capital+ti)+'</td><td></td></tr></tbody></table>';
+    cs.map(c=>'<tr><td>'+c.n+'</td><td>'+fmtDate(c.fecha)+'</td><td class="num">'+money(c.saldoIni)+'</td><td class="num">'+money(c.capital)+'</td><td class="num">'+money(c.interes)+'</td><td class="num">'+money(cuotaTotal(c))+cargoNote(c)+'</td><td class="num">'+money(c.saldoFin)+'</td></tr>').join("")+
+    '<tr class="total"><td colspan="3">Total</td><td class="num">'+money(f.capital)+'</td><td class="num">'+money(ti)+'</td><td class="num">'+money(f.capital+ti+tg)+'</td><td></td></tr></tbody></table>';
 }
+function setCargo1(cs,f){const c=cs[0];if(!c)return;if(f.cargo>0){c.cargo=f.cargo;c.cargoDesc=f.cargoDesc||CARGO_DEF;}else{delete c.cargo;delete c.cargoDesc;}}
 function saveForm(){
   const {f,err}=readForm(); if(err){$("#mErr").textContent=err;return;}
   if(ui.editId){
@@ -1196,10 +1213,11 @@ function saveForm(){
       L.cuotas.forEach((c,i)=>{c.fecha=addMonthsISO(f.primera,i);});
     }
     Object.assign(L,{persona:f.persona,cedula:f.cedula,capital:f.capital,tasa:f.tasa,plazo:f.plazo,transferencia:f.transferencia,nota:f.nota});
+    if(L.cuotas[0]&&!esSoloInteres(L.cuotas[0])) setCargo1(L.cuotas,f);
     if(ui.cuotaEdit&&ui.cuotaEdit.id===L.id) ui.cuotaEdit=null;
     toast("Préstamo actualizado");
   } else {
-    const L={id:"P"+Date.now().toString(36),persona:f.persona,cedula:f.cedula,capital:f.capital,tasa:f.tasa,plazo:f.plazo,transferencia:f.transferencia,nota:f.nota,origen:"Manual",cuotas:generarCuotas(f.capital,f.tasa,f.plazo,f.primera)};
+    const L={id:"P"+Date.now().toString(36),persona:f.persona,cedula:f.cedula,capital:f.capital,tasa:f.tasa,plazo:f.plazo,transferencia:f.transferencia,nota:f.nota,origen:"Manual",cuotas:generarCuotas(f.capital,f.tasa,f.plazo,f.primera)}; setCargo1(L.cuotas,f);
     state.loans.push(L); ui.open.add(L.id); toast("Préstamo agregado: "+shortName(L.persona)+" "+money(L.capital));
   }
   save(); closeForm(); renderAll();
@@ -1273,6 +1291,8 @@ function bind(){
   $("#mSave").addEventListener("click",saveForm);
   $("#loanForm").addEventListener("submit",e=>{e.preventDefault();saveForm();});
   $("#iRegen").addEventListener("change",()=>{ui.regenTocado=true;updatePreview();});
+  $("#iCargoOn").addEventListener("change",()=>{$("#cargoRow").hidden=!$("#iCargoOn").checked;if($("#iCargoOn").checked&&!$("#iCargo").value)$("#iCargo").focus();updatePreview();});
+  ["iCargo","iCargoDesc"].forEach(id=>$("#"+id).addEventListener("input",updatePreview));
   $("#iPrimera").addEventListener("input",()=>{ui.primeraTocada=true;updatePreview();});
   $("#iTransf").addEventListener("input",()=>{const v=$("#iTransf").value;if(v&&!ui.primeraTocada)$("#iPrimera").value=addMonthsISO(v,1);updatePreview();});
   ["#iCapital","#iTasa","#iMeses"].forEach(s=>$(s).addEventListener("input",updatePreview));
