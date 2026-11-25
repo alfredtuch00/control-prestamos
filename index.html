@@ -109,24 +109,24 @@ tr.sel-abo td{background:#f4f3fe}
 @media (max-width:1000px){.asis-grid{grid-template-columns:1fr}.asis-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.cmp{grid-template-columns:repeat(2,minmax(0,1fr))}}
 tr.is-interes td{color:#55606f}
 .ext{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:999px;background:#e6ebf2;color:#46566d;font-size:11px;font-weight:700;white-space:nowrap}
-.abono-menu{position:fixed;z-index:80;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(16,24,40,.18);padding:6px;min-width:280px;max-width:92vw;max-height:min(80vh,640px);overflow:auto;-webkit-overflow-scrolling:touch}
+.abono-menu{position:fixed;z-index:80;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px rgba(16,24,40,.18);padding:4px;min-width:220px;max-width:92vw;max-height:min(80vh,520px);overflow:auto;-webkit-overflow-scrolling:touch}
 .abono-menu[hidden]{display:none}
-.abono-menu .hd{font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:6px 8px 4px}
-.abono-menu button{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:transparent;padding:9px 10px;border-radius:8px;cursor:pointer;font-weight:600}
+.abono-menu .hd{font-size:11px;color:var(--muted);font-weight:700;padding:6px 10px 2px}
+.abono-menu button{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;border:0;background:transparent;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px}
 .abono-menu button:hover:not(:disabled){background:#f3f4f6}
-.abono-menu button:disabled{opacity:.5;cursor:not-allowed}
-.abono-menu button span{min-width:0;flex:1}.abono-menu button small{display:block;font-weight:500;color:var(--muted);font-size:11.5px;margin-top:1px;white-space:normal}
-.abono-menu button b{white-space:nowrap}
-.abono-menu .note2{font-size:11.5px;color:var(--muted);padding:4px 10px 6px}
-.abono-menu .blk{padding:8px 10px 10px;border-top:1px solid var(--line);margin-top:2px}
-.abono-menu .blk .ttl{font-weight:700;font-size:13.5px;margin:0 0 4px}
-.abono-menu .rule{font-size:11.5px;color:var(--muted);line-height:1.4;margin:0 0 8px}
-.abono-menu label{display:block;font-size:11.5px;font-weight:700;margin:8px 0 4px}
-.abono-menu input[type=number]{width:100%;box-sizing:border-box;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-weight:700}
-.abono-menu .hint{font-size:11.5px;color:var(--muted);margin:6px 0 8px;line-height:1.35}
-.abono-menu .hint b{color:var(--ink)}
-.abono-menu .btn.aplicar,.abono-menu .btn.solo{width:100%;justify-content:space-between;margin-top:4px;white-space:normal;align-items:flex-start;height:auto}
-.abono-menu .btn.solo{background:#eef1f5;border-color:#d5dbe4;color:#243047;text-align:left}
+.abono-menu button:disabled{opacity:.45;cursor:not-allowed}
+.abono-menu button b{white-space:nowrap;font-variant-numeric:tabular-nums}
+.abono-menu .opt[aria-expanded="true"]{background:#f3f4f6}
+.abono-menu .blk{display:none;padding:0 8px 8px}
+.abono-menu .blk.on{display:block}
+.abono-menu .par-top{display:flex;gap:6px;align-items:center}
+.abono-menu input[type=number]{flex:1;width:100%;box-sizing:border-box;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-weight:700;min-width:0}
+.abono-menu .info{flex:none;width:auto;padding:4px 6px;color:var(--muted);font-size:14px;line-height:1;cursor:help;background:transparent}
+.abono-menu .par-actions{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.abono-menu .chip-solo{width:auto;flex:1 1 auto;justify-content:center;padding:7px 10px;border-radius:999px;background:#eef1f5;border:1px solid #d5dbe4;color:#243047;font-size:12.5px;font-weight:600;white-space:nowrap}
+.abono-menu .btn.aplicar{flex:1 1 auto;justify-content:center;min-width:96px;margin:0}
+.abono-menu .hint{font-size:11.5px;color:var(--muted);margin:6px 2px 0;line-height:1.3;min-height:0}
+.abono-menu .hint:empty{display:none}
 small.parcial{color:#4338ca;font-weight:600;white-space:nowrap}
 .btn.abonar{background:var(--pri);border-color:var(--pri);color:#fff}.btn.abonar:hover{background:var(--pri2)}
 .btn.undo{color:var(--muted)}
@@ -473,7 +473,7 @@ function intPagadoParcial(c){return (!c.pagado&&c.parcial&&c.parcial.orig)?r2((+
 function cargoPagadoParcial(c){return (!c.pagado&&c.parcial&&c.parcial.orig)?r2((+c.parcial.orig.cargo||0)-cargoDe(c)):0;}
 function cargoOrig(c){return (c.parcial&&c.parcial.orig&&c.parcial.orig.cargo!=null)?r2(+c.parcial.orig.cargo||0):cargoDe(c);}
 function cargoPagadoDe(c){return c.pagado?cargoDe(c):cargoPagadoParcial(c);}
-function parcialNote(c){const p=parcialDe(c);return (p>0&&!c.pagado)?'<br><small class="parcial" title="Abono parcial: el resto de la cuota sigue pendiente">Parcial: pagado '+money(p)+' de '+money(origTotal(c))+'</small>':'';}
+function parcialNote(c){const p=parcialDe(c);return (p>0&&!c.pagado)?'<br><small class="parcial" title="Abono parcial: el resto de la cuota sigue pendiente">Parcial '+money(p)+'/'+money(origTotal(c))+'</small>':'';}
 /* Cuota pagada solo con interés: tipo="interes" (capital 0, saldo sin cambio; el capital aplazado pasa a la cuota siguiente). */
 const esSoloInteres = c => !!c.pagado && c.tipo==="interes";
 const TIPO_ESTADO = {interes:"interes", liquidacion:"liquidado", abono:"abono"};
@@ -857,7 +857,7 @@ function renderPrestamos(){
         (s.cargo?'<div class="note" style="background:#fff6e5;border-color:#f0d6a0;color:#6b4500">Cargos adicionales: <b>'+money(s.cargo)+'</b> ('+L.cuotas.filter(c=>cargoDe(c)>0).map(c=>esc(c.cargoDesc||CARGO_DEF)+' en cuota '+c.n).join(', ')+') · cobrado '+money(s.cargoCob)+' · pendiente '+money(s.cargo-s.cargoCob)+'. El cargo se cobra junto con su cuota.</div>':'')+
         (s.liq?'<div class="note" style="background:#e9f6f3;border-color:#bfe3da;color:#0f5246">Liquidación anticipada el '+fmtDate(s.liq.fecha)+': se cobró '+money(cuotaTotal(s.liq))+' (capital '+money(s.liq.capital)+' + interés '+money(s.liq.interes)+') y se dejaron de generar '+money(s.liq.interesAhorrado||0)+' de interés futuro. Para deshacer, toca “↺ Deshacer liquidación”.</div>':'')+
         (s.abonos?'<div class="note" style="background:#efeefe;border-color:#d4d1f7;color:#3730a3">Tiene '+s.abonos+' abono(s) extra a capital: el saldo bajó y el interés futuro se recalculó. Para deshacer, toca “↺ Deshacer abono”.</div>':'')+
-        (L.cuotas.some(c=>parcialDe(c)&&!c.pagado)?'<div class="note" style="background:#efeefe;border-color:#d4d1f7;color:#3730a3">Hay abono(s) parciales: el resto de esas cuotas sigue pendiente (se muestra “Parcial: pagado $X de $Y”). Para deshacer, toca “↺ Deshacer parcial”.</div>':'')+
+        (L.cuotas.some(c=>parcialDe(c)&&!c.pagado)?'<div class="note" style="background:#efeefe;border-color:#d4d1f7;color:#3730a3">Hay abono(s) parciales (se muestra “Parcial $X/$Y”). Para deshacer, toca “↺ Deshacer parcial”.</div>':'')+
         (s.ext?'<div class="note" style="background:#eef1f5;border-color:#d5dbe4;color:#3c4a5e">Plazo extendido de '+(s.total-s.ext)+' a '+s.total+' meses por '+s.ext+' pago(s) de solo interés. Fecha fin: '+fmtDate(s.fin)+' (antes '+fmtDate(s.finOrig)+'). Para deshacer, toca “↺ Deshacer” en la cuota de “Solo interés”.</div>':'')+
         '<div class="ce-bar"><b>Tabla de amortización</b><span class="spacer"></span><button class="btn sm" data-cedit="'+esc(L.id)+'">✎ Editar cuotas</button><button class="btn sm" data-edit="'+esc(L.id)+'">Editar préstamo</button></div>'+
         '<table class="responsive"><thead><tr><th>Nº</th><th>Fecha de pago</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th><th>Estado</th><th>Cobro</th></tr></thead><tbody>'+
@@ -1086,7 +1086,7 @@ function pagarParcial(k,monto){
 }
 function liquidarPrestamo(id){
   const L=state.loans.find(x=>x.id===id); if(!L)return; const s=situacion(L); if(!s)return;
-  if(!confirm("¿Liquidar todo el préstamo de "+shortName(L.persona)+" hoy ("+fmtDate(HOY)+")?\n\nPagas "+money(s.pago)+" (capital "+money(s.saldo)+(s.intC?" + interés de este mes "+money(s.intC):"")+(s.cargos?" + cargos "+money(s.cargos):"")+") y evitas "+money(s.ahorro)+" de interés futuro.\n\nSe puede deshacer desde la tabla del préstamo.")) return;
+  if(!confirm("¿Liquidar por "+money(s.pago)+"?")) return;
   aplicarLiquidacion(L,HOY); save(); renderAll();
   toast("Préstamo liquidado: "+shortName(L.persona)+" ("+money(s.pago)+")");
 }
@@ -1094,21 +1094,16 @@ function updateParcialHint(){
   const m=$("#abonoMenu"), inp=$("#aParcialMonto"), h=$("#aParcialHint"); if(!m||!inp||!h||!m.dataset.k)return;
   const f=findCuota(m.dataset.k); if(!f||!f.c)return; const L=f.L,c=f.c,idx=L.cuotas.indexOf(c);
   const monto=r2(parseFloat(inp.value)||0), max=maxParcial(L,idx), sit=situacion(L);
-  if(!(monto>0)){h.innerHTML="Primero se cubre el interés y el cargo, luego el capital. Si pagas más que la cuota, el resto baja el capital de las cuotas siguientes y se recalcula el interés futuro.";return;}
+  if(!(monto>0)){h.textContent="";return;}
   const d=destinarParcial(c,Math.min(monto,max));
-  const parts=[];
-  if(d.pagadoInt)parts.push("interés "+money(d.pagadoInt));
-  if(d.pagadoCargo)parts.push("cargo "+money(d.pagadoCargo));
-  if(d.pagadoCap)parts.push("capital "+money(d.pagadoCap));
-  let txt=parts.length?"Se cubre "+parts.join(", ")+".":"El monto no alcanza a cubrir un rubro.";
   const resto=r2(cuotaTotal(c)-d.pagadoInt-d.pagadoCargo-d.pagadoCap);
-  if(resto>0.004) txt+=" La cuota queda pendiente: <b>Parcial: pagado "+money(d.aplicado)+" de "+money(origTotal(c))+"</b> (restan "+money(resto)+").";
-  else txt+=" Con esto se paga completa esta cuota ("+money(cuotaTotal(c))+").";
-  if(d.extra>0){const ah=function(){const copia=clone(L);const r=aplicarParcial(copia,idx,Math.min(monto,max),HOY);return r&&r.ab?r.ab.ahorro:0;}();
-    txt+=" Los "+money(d.extra)+" extra van a capital de las cuotas siguientes"+(ah?" y se evitan "+money(ah)+" de interés futuro":"")+".";}
-  if(monto>max+0.004) txt+=" El máximo aquí es "+money(max)+".";
-  if(sit&&monto>=sit.pago-0.004) txt+=" Con "+money(sit.pago)+" puedes liquidar todo el préstamo (usa Abono completo).";
-  h.innerHTML=txt;
+  let txt="";
+  if(resto>0.004) txt="Parcial "+money(r2((c.parcial&&c.parcial.monto||0)+d.aplicado))+"/"+money(origTotal(c));
+  else if(d.extra>0) txt="Cuota + "+money(d.extra)+" a capital";
+  else txt="Cubre la cuota";
+  if(monto>max+0.004) txt="Máximo "+money(max);
+  else if(sit&&monto>=sit.pago-0.004) txt="Puedes liquidar por "+money(sit.pago);
+  h.textContent=txt;
 }
 function placeAbonoMenu(btn){
   const m=$("#abonoMenu"); if(!m||m.hidden)return;
@@ -1124,26 +1119,36 @@ function placeAbonoMenu(btn){
   if(y<4) y=4;
   m.style.left=Math.round(x)+"px"; m.style.top=Math.round(y)+"px";
 }
+function showParcialForm(on){
+  const box=$("#aParcialBox"), btn=$("#abonoMenu [data-open='parcial']"); if(!box)return;
+  const open=on==null?!box.classList.contains("on"):!!on;
+  box.hidden=!open; box.classList.toggle("on",open);
+  if(btn) btn.setAttribute("aria-expanded",open?"true":"false");
+  placeAbonoMenu($("#abonoMenu")&&$("#abonoMenu")._btn);
+  if(open){const i=$("#aParcialMonto"); if(i) setTimeout(()=>i.focus(),50);}
+}
 function openAbono(btn){
   const f=findCuota(btn.dataset.abonar);if(!f||!f.c)return;const {L,c}=f,idx=L.cuotas.indexOf(c),blocked=laterPaid(L,idx);
   const m=$("#abonoMenu"), k=btn.dataset.abonar, intOnly=r2(c.saldoIni*L.tasa/100), sit=situacion(L);
-  const resto=cuotaTotal(c), ya=parcialDe(c), orig=origTotal(c);
+  const resto=cuotaTotal(c), ya=parcialDe(c);
   const noSolo=blocked||!(c.capital>0)||ya>0;
+  const tip="Primero se cubre el interés y el cargo, luego el capital. Si pagas más que la cuota, el resto baja el capital de las siguientes y se recalcula el interés futuro.";
   m.dataset.k=k; m._btn=btn;
-  m.innerHTML='<div class="hd">Abonar cuota '+c.n+'/'+L.cuotas.length+' · '+esc(shortName(L.persona))+' · '+fmtDate(c.fecha)+'</div>'+
-    '<button type="button" data-pay="completo" data-k="'+esc(k)+'"><span>Abono de la cuota<small>'+(ya?'Resto de la cuota: capital '+money(c.capital)+' + interés '+money(c.interes)+(cargoDe(c)?' + cargo '+money(cargoDe(c)):'')+' (ya pagado '+money(ya)+' de '+money(orig)+')':'Capital '+money(c.capital)+' + interés '+money(c.interes)+(cargoDe(c)?' + cargo '+money(cargoDe(c)):'')+'')+'</small></span><b>'+money(resto)+'</b></button>'+
-    '<div class="blk">'+
-      '<div class="ttl">Abono parcial</div>'+
-      '<p class="rule">Escribe el monto que te pagaron. Primero se cubre el <b>interés</b> y el <b>cargo</b>, luego el <b>capital</b>. Si pagas más que esta cuota, el resto baja el capital de las cuotas siguientes y se recalcula el interés futuro (igual que un abono extra). Si pagas menos, la cuota queda pendiente y se muestra “Parcial: pagado $X de $Y”.</p>'+
-      '<button type="button" class="btn sm solo" data-pay="interes" data-k="'+esc(k)+'"'+(noSolo?' disabled':'')+'><span>Solo interés<small>El capital '+money(c.capital)+(cargoDe(c)?' y el cargo '+money(cargoDe(c)):'')+' se corre'+(cargoDe(c)?'n':'')+' un mes (+1 mes de plazo)'+(ya?'':'')+'</small></span><b>'+money(intOnly)+'</b></button>'+
-      (blocked?'<div class="note2">Solo interés no disponible: hay cuotas posteriores pagadas.</div>':'')+
-      (ya&&!blocked?'<div class="note2">Solo interés no disponible: esta cuota ya tiene un abono parcial.</div>':'')+
-      '<form id="aParcialForm" data-k="'+esc(k)+'"><label for="aParcialMonto">Monto recibido</label>'+
-      '<input type="number" id="aParcialMonto" step="0.01" min="0.01" inputmode="decimal" enterkeyhint="done" placeholder="0.00" autocomplete="off">'+
-      '<div class="hint" id="aParcialHint">Primero se cubre el interés y el cargo, luego el capital. Si pagas más que la cuota, el resto baja el capital de las cuotas siguientes y se recalcula el interés futuro.</div>'+
-      '<button type="submit" class="btn sm pri aplicar">Aplicar abono parcial</button></form>'+
+  m.innerHTML='<div class="hd">'+c.n+'/'+L.cuotas.length+' · '+fmtDate(c.fecha)+'</div>'+
+    '<button type="button" class="opt" data-pay="completo" data-k="'+esc(k)+'"><span>Cuota</span><b>'+money(resto)+'</b></button>'+
+    '<button type="button" class="opt" data-open="parcial" aria-expanded="false"><span>Parcial</span>'+(ya?'<b>'+money(ya)+'</b>':'')+'</button>'+
+    '<div class="blk" id="aParcialBox" hidden>'+
+      '<form id="aParcialForm" data-k="'+esc(k)+'">'+
+        '<div class="par-top"><input type="number" id="aParcialMonto" step="0.01" min="0.01" inputmode="decimal" enterkeyhint="done" placeholder="Monto" autocomplete="off" aria-label="Monto del abono parcial">'+
+        '<button type="button" class="info" title="'+esc(tip)+'" aria-label="Cómo se aplica">ⓘ</button></div>'+
+        '<div class="par-actions">'+
+          '<button type="button" class="chip-solo" data-pay="interes" data-k="'+esc(k)+'"'+(noSolo?' disabled title="'+(blocked?'Hay cuotas posteriores pagadas':'Esta cuota ya tiene un abono parcial')+'"':'')+'>Solo interés '+money(intOnly)+'</button>'+
+          '<button type="submit" class="btn sm pri aplicar">Guardar</button>'+
+        '</div>'+
+        '<div class="hint" id="aParcialHint"></div>'+
+      '</form>'+
     '</div>'+
-    (sit?'<button type="button" data-pay="liquidar" data-id="'+esc(L.id)+'" data-k="'+esc(k)+'"><span>Abono completo<small>Liquidar el préstamo hoy: capital pendiente '+money(sit.saldo)+(sit.intC?' + interés de este mes '+money(sit.intC):'')+(sit.cargos?' + cargos '+money(sit.cargos):'')+', sin interés futuro (ahorras '+money(sit.ahorro)+')</small></span><b>'+money(sit.pago)+'</b></button>':'');
+    (sit?'<button type="button" class="opt" data-pay="liquidar" data-id="'+esc(L.id)+'" data-k="'+esc(k)+'"><span>Liquidar</span><b>'+money(sit.pago)+'</b></button>':'');
   m.hidden=false; placeAbonoMenu(btn);
 }
 function closeAbono(){const m=$("#abonoMenu");if(m){m.hidden=true;m._btn=null;}}
@@ -1421,8 +1426,10 @@ function bind(){
     renderFilterOptions();renderCuotas();});
   document.addEventListener("click",e=>{
     const ab=e.target.closest("[data-abonar]"); if(ab){e.stopPropagation(); const m=$("#abonoMenu"); if(!m.hidden&&m.dataset.k===ab.dataset.abonar){closeAbono();return;} m.dataset.k=ab.dataset.abonar; openAbono(ab); return;}
+    const op=e.target.closest("#abonoMenu [data-open='parcial']"); if(op){e.stopPropagation(); showParcialForm(); return;}
+    if(e.target.closest("#abonoMenu .info")){e.stopPropagation(); return;}
     const pay=e.target.closest("#abonoMenu [data-pay]"); if(pay){
-      if(pay.dataset.pay==="parcial") return; // el form hace submit
+      if(pay.dataset.pay==="parcial") return;
       closeAbono();
       if(pay.dataset.pay==="completo") pagarCompleto(pay.dataset.k);
       else if(pay.dataset.pay==="interes") pagarSoloInteres(pay.dataset.k);
