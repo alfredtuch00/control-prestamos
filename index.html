@@ -115,7 +115,7 @@ tr.is-interes td{color:#55606f}
 .abono-menu button{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:transparent;padding:9px 10px;border-radius:8px;cursor:pointer;font-weight:600}
 .abono-menu button:hover:not(:disabled){background:#f3f4f6}
 .abono-menu button:disabled{opacity:.5;cursor:not-allowed}
-.abono-menu button small{display:block;font-weight:500;color:var(--muted);font-size:11.5px;margin-top:1px}
+.abono-menu button span{min-width:0;flex:1}.abono-menu button small{display:block;font-weight:500;color:var(--muted);font-size:11.5px;margin-top:1px;white-space:normal}
 .abono-menu button b{white-space:nowrap}
 .abono-menu .note2{font-size:11.5px;color:var(--muted);padding:4px 10px 6px}
 .abono-menu .blk{padding:8px 10px 10px;border-top:1px solid var(--line);margin-top:2px}
@@ -125,8 +125,8 @@ tr.is-interes td{color:#55606f}
 .abono-menu input[type=number]{width:100%;box-sizing:border-box;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-weight:700}
 .abono-menu .hint{font-size:11.5px;color:var(--muted);margin:6px 0 8px;line-height:1.35}
 .abono-menu .hint b{color:var(--ink)}
-.abono-menu .btn.aplicar,.abono-menu .btn.solo{width:100%;justify-content:center;margin-top:4px}
-.abono-menu .btn.solo{background:#eef1f5;border-color:#d5dbe4;color:#243047}
+.abono-menu .btn.aplicar,.abono-menu .btn.solo{width:100%;justify-content:space-between;margin-top:4px;white-space:normal;align-items:flex-start;height:auto}
+.abono-menu .btn.solo{background:#eef1f5;border-color:#d5dbe4;color:#243047;text-align:left}
 small.parcial{color:#4338ca;font-weight:600;white-space:nowrap}
 .btn.abonar{background:var(--pri);border-color:var(--pri);color:#fff}.btn.abonar:hover{background:var(--pri2)}
 .btn.undo{color:var(--muted)}
