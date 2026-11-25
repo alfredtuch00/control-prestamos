@@ -109,7 +109,7 @@ tr.sel-abo td{background:#f4f3fe}
 @media (max-width:1000px){.asis-grid{grid-template-columns:1fr}.asis-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.cmp{grid-template-columns:repeat(2,minmax(0,1fr))}}
 tr.is-interes td{color:#55606f}
 .ext{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:999px;background:#e6ebf2;color:#46566d;font-size:11px;font-weight:700;white-space:nowrap}
-.abono-menu{position:fixed;z-index:80;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(16,24,40,.18);padding:6px;min-width:240px;max-width:92vw}
+.abono-menu{position:fixed;z-index:80;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(16,24,40,.18);padding:6px;min-width:280px;max-width:92vw;max-height:min(80vh,640px);overflow:auto;-webkit-overflow-scrolling:touch}
 .abono-menu[hidden]{display:none}
 .abono-menu .hd{font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:6px 8px 4px}
 .abono-menu button{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:transparent;padding:9px 10px;border-radius:8px;cursor:pointer;font-weight:600}
@@ -118,6 +118,16 @@ tr.is-interes td{color:#55606f}
 .abono-menu button small{display:block;font-weight:500;color:var(--muted);font-size:11.5px;margin-top:1px}
 .abono-menu button b{white-space:nowrap}
 .abono-menu .note2{font-size:11.5px;color:var(--muted);padding:4px 10px 6px}
+.abono-menu .blk{padding:8px 10px 10px;border-top:1px solid var(--line);margin-top:2px}
+.abono-menu .blk .ttl{font-weight:700;font-size:13.5px;margin:0 0 4px}
+.abono-menu .rule{font-size:11.5px;color:var(--muted);line-height:1.4;margin:0 0 8px}
+.abono-menu label{display:block;font-size:11.5px;font-weight:700;margin:8px 0 4px}
+.abono-menu input[type=number]{width:100%;box-sizing:border-box;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-weight:700}
+.abono-menu .hint{font-size:11.5px;color:var(--muted);margin:6px 0 8px;line-height:1.35}
+.abono-menu .hint b{color:var(--ink)}
+.abono-menu .btn.aplicar,.abono-menu .btn.solo{width:100%;justify-content:center;margin-top:4px}
+.abono-menu .btn.solo{background:#eef1f5;border-color:#d5dbe4;color:#243047}
+small.parcial{color:#4338ca;font-weight:600;white-space:nowrap}
 .btn.abonar{background:var(--pri);border-color:var(--pri);color:#fff}.btn.abonar:hover{background:var(--pri2)}
 .btn.undo{color:var(--muted)}
 .b-vigente{background:var(--pri-soft);color:var(--pri)}
@@ -455,6 +465,15 @@ function cuotaTotal(c){return r2(c.capital+c.interes+cargoDe(c));}
 const CARGO_DEF = "Retiro con tarjeta";
 /* Nota bajo el valor de la cuota cuando tiene un cargo adicional (p. ej. retiro con tarjeta). */
 function cargoNote(c){return cargoDe(c)>0?'<br><small class="cargo" title="Cargo adicional incluido en la cuota">incl. cargo '+money(cargoDe(c))+' · '+esc(c.cargoDesc||CARGO_DEF)+'</small>':(c.cargoAplazado>0?'<br><small class="muted">cargo '+money(c.cargoAplazado)+' pasa a la cuota siguiente</small>':'');}
+const parcialDe = c => c.parcial && c.parcial.monto>0 ? r2(c.parcial.monto) : 0;
+function origCuota(c){return (c.parcial&&c.parcial.orig)?c.parcial.orig:{capital:c.capital,interes:c.interes,cargo:cargoDe(c),cargoDesc:c.cargoDesc||""};}
+function origTotal(c){const o=origCuota(c);return r2((+o.capital||0)+(+o.interes||0)+(+o.cargo||0));}
+function capPagadoParcial(c){return (!c.pagado&&c.parcial&&c.parcial.orig)?r2((+c.parcial.orig.capital||0)-c.capital):0;}
+function intPagadoParcial(c){return (!c.pagado&&c.parcial&&c.parcial.orig)?r2((+c.parcial.orig.interes||0)-c.interes):0;}
+function cargoPagadoParcial(c){return (!c.pagado&&c.parcial&&c.parcial.orig)?r2((+c.parcial.orig.cargo||0)-cargoDe(c)):0;}
+function cargoOrig(c){return (c.parcial&&c.parcial.orig&&c.parcial.orig.cargo!=null)?r2(+c.parcial.orig.cargo||0):cargoDe(c);}
+function cargoPagadoDe(c){return c.pagado?cargoDe(c):cargoPagadoParcial(c);}
+function parcialNote(c){const p=parcialDe(c);return (p>0&&!c.pagado)?'<br><small class="parcial" title="Abono parcial: el resto de la cuota sigue pendiente">Parcial: pagado '+money(p)+' de '+money(origTotal(c))+'</small>':'';}
 /* Cuota pagada solo con interés: tipo="interes" (capital 0, saldo sin cambio; el capital aplazado pasa a la cuota siguiente). */
 const esSoloInteres = c => !!c.pagado && c.tipo==="interes";
 const TIPO_ESTADO = {interes:"interes", liquidacion:"liquidado", abono:"abono"};
@@ -677,8 +696,9 @@ function loanStats(L){
   const regular=n-extras.length, liq=extras.find(c=>c.tipo==="liquidacion")||null, abonos=extras.filter(c=>c.tipo==="abono");
   const plazoOrig=Number(L.plazo)>0?Number(L.plazo):regular-ext;
   let finOrig=fin; const conFin=extras.find(c=>c.finAntes); if(conFin) finOrig=conFin.finAntes; else if(ext&&n-1-ext>=0) finOrig=L.cuotas[n-1-ext].fecha;
-  const cargo=r2(L.cuotas.reduce((a,c)=>a+cargoDe(c),0)), cargoCob=r2(L.cuotas.filter(c=>c.pagado).reduce((a,c)=>a+cargoDe(c),0));
-  return {cargo, cargoCob, saldo:r2(L.capital-pagadoCap), interes:r2(interes), pagadas, total:n, vencidas, fin, ext, plazoOrig, plazoAct:regular, finOrig, liq, abonos:abonos.length, estado: pagadas===n?"pagado":"vigente"};
+  const cargo=r2(L.cuotas.reduce((a,c)=>a+cargoOrig(c),0)), cargoCob=r2(L.cuotas.reduce((a,c)=>a+cargoPagadoDe(c),0));
+  const saldo=r2(L.cuotas.filter(c=>!c.pagado).reduce((a,c)=>a+c.capital,0));
+  return {cargo, cargoCob, saldo, interes:r2(interes), pagadas, total:n, vencidas, fin, ext, plazoOrig, plazoAct:regular, finOrig, liq, abonos:abonos.length, estado: pagadas===n?"pagado":"vigente"};
 }
 function loanLabel(L){return money(L.capital)+" · "+fmtDate(L.transferencia);}
 function allRows(){
@@ -694,17 +714,22 @@ function filteredRows(){
     if(ui.estados.size && !ui.estados.has(r.estado) && !(ui.estados.has("anticipado")&&(r.estado==="liquidado"||r.estado==="abono"))) return false;
     if(ui.persona && r.L.persona!==ui.persona) return false;
     if(q){
-      const hay=[r.L.persona,r.L.cedula,loanLabel(r.L),fmtDate(r.c.fecha),money(r.total),money(r.c.capital),money(r.c.interes),ESTADO_LABEL[r.estado],String(r.total),cargoDe(r.c)?"cargo "+(r.c.cargoDesc||CARGO_DEF)+" "+money(cargoDe(r.c)):""].join(" ").toLowerCase();
+      const hay=[r.L.persona,r.L.cedula,loanLabel(r.L),fmtDate(r.c.fecha),money(r.total),money(r.c.capital),money(r.c.interes),ESTADO_LABEL[r.estado],String(r.total),cargoDe(r.c)?"cargo "+(r.c.cargoDesc||CARGO_DEF)+" "+money(cargoDe(r.c)):"",parcialDe(r.c)?"parcial pagado "+money(parcialDe(r.c))+" de "+money(origTotal(r.c)):""].join(" ").toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
   });
 }
 function sumRows(rows){
-  const s={n:rows.length,total:0,capital:0,interes:0,cobrado:0,pendiente:0,porvencer:0,vencido:0,nPag:0,nVen:0,nPor:0,nInt:0,soloInteres:0,nAnt:0,cargo:0,cargoCob:0,nCargo:0};
-  rows.forEach(r=>{s.total+=r.total;s.capital+=r.c.capital;s.interes+=r.c.interes;const cg=cargoDe(r.c);if(cg>0){s.cargo+=cg;s.nCargo++;if(cobrada(r.estado))s.cargoCob+=cg;}
-    if(cobrada(r.estado)){s.cobrado+=r.total;s.nPag++;if(r.estado==="interes"){s.nInt++;s.soloInteres+=r.total;}if(r.estado==="liquidado"||r.estado==="abono")s.nAnt++;} else {s.pendiente+=r.total; if(r.estado==="vencido"){s.vencido+=r.total;s.nVen++;} else {s.porvencer+=r.total;s.nPor++;}}});
-  for(const k of ["total","capital","interes","cobrado","pendiente","porvencer","vencido","soloInteres","cargo","cargoCob"]) s[k]=r2(s[k]);
+  const s={n:rows.length,total:0,capital:0,interes:0,cobrado:0,pendiente:0,porvencer:0,vencido:0,nPag:0,nVen:0,nPor:0,nInt:0,soloInteres:0,nAnt:0,cargo:0,cargoCob:0,nCargo:0,nParc:0,parcial:0};
+  rows.forEach(r=>{
+    const pc=capPagadoParcial(r.c), pi=intPagadoParcial(r.c), pg=cargoPagadoParcial(r.c), pm=r2(pc+pi+pg);
+    s.total+=r.total+pm;s.capital+=r.c.capital+pc;s.interes+=r.c.interes+pi;
+    const cg=cargoOrig(r.c);if(cg>0){s.cargo+=cg;s.nCargo++;}s.cargoCob+=cargoPagadoDe(r.c);
+    if(cobrada(r.estado)){s.cobrado+=r.total;s.nPag++;if(r.estado==="interes"){s.nInt++;s.soloInteres+=r.total;}if(r.estado==="liquidado"||r.estado==="abono")s.nAnt++;}
+    else {if(pm>0){s.cobrado+=pm;s.parcial+=pm;s.nParc++;} s.pendiente+=r.total; if(r.estado==="vencido"){s.vencido+=r.total;s.nVen++;} else {s.porvencer+=r.total;s.nPor++;}}
+  });
+  for(const k of ["total","capital","interes","cobrado","pendiente","porvencer","vencido","soloInteres","cargo","cargoCob","parcial"]) s[k]=r2(s[k]);
   return s;
 }
 function personas(){return [...new Set(state.loans.map(L=>L.persona))].sort((a,b)=>a.localeCompare(b));}
@@ -748,7 +773,7 @@ function renderCuotas(){
     card("","Capital",money(s.capital))+
     card("","Interés",money(s.interes))+
     (s.cargo?card("","Cargos adicionales",money(s.cargo),s.nCargo+" cargo(s) · cobrado "+money(s.cargoCob)):"")+
-    card("ok","Cobrado",money(s.cobrado),s.nPag+" cuota(s)"+(s.nInt?" · "+s.nInt+" solo interés":"")+(s.nAnt?" · "+s.nAnt+" anticipado":""))+
+    card("ok","Cobrado",money(s.cobrado),s.nPag+" cuota(s)"+(s.nInt?" · "+s.nInt+" solo interés":"")+(s.nAnt?" · "+s.nAnt+" anticipado":"")+(s.nParc?" · "+s.nParc+" parcial(es) "+money(s.parcial):""))+
     card("warn","Por vencer",money(s.porvencer),s.nPor+" cuota(s)")+
     card("bad","Vencido",money(s.vencido),s.nVen+" cuota(s)")+
     card("","Nº cuotas",String(s.n),s.nPag+" pagadas · "+(s.n-s.nPag)+" pendientes");
@@ -771,9 +796,9 @@ function renderCuotas(){
       '<td data-l="Fecha de pago">'+fmtDate(c.fecha)+'</td>'+
       '<td class="num" data-l="Capital">'+money(c.capital)+'</td>'+
       '<td class="num" data-l="Interés">'+money(c.interes)+'</td>'+
-      '<td class="num" data-l="Cuota"><b>'+money(r.total)+'</b>'+cargoNote(c)+'</td>'+
+      '<td class="num" data-l="Cuota"><b>'+money(r.total)+'</b>'+cargoNote(c)+parcialNote(c)+'</td>'+
       '<td class="num" data-l="Saldo después">'+money(c.saldoFin)+'</td>'+
-      '<td data-l="Estado"><span class="badge b-'+r.estado+'">'+ESTADO_LABEL[r.estado]+'</span></td>'+
+      '<td data-l="Estado"><span class="badge b-'+r.estado+'">'+ESTADO_LABEL[r.estado]+'</span>'+parcialNote(c)+'</td>'+
       '<td data-l="Cobro">'+cobroCell(L,c)+'</td></tr>';
   }).join("")+
   '<tr class="total"><td class="persona" data-l="">Total ('+s.n+' cuotas)</td><td data-l="" class="hide-m"></td><td data-l=""></td><td data-l=""></td>'+
@@ -832,10 +857,11 @@ function renderPrestamos(){
         (s.cargo?'<div class="note" style="background:#fff6e5;border-color:#f0d6a0;color:#6b4500">Cargos adicionales: <b>'+money(s.cargo)+'</b> ('+L.cuotas.filter(c=>cargoDe(c)>0).map(c=>esc(c.cargoDesc||CARGO_DEF)+' en cuota '+c.n).join(', ')+') · cobrado '+money(s.cargoCob)+' · pendiente '+money(s.cargo-s.cargoCob)+'. El cargo se cobra junto con su cuota.</div>':'')+
         (s.liq?'<div class="note" style="background:#e9f6f3;border-color:#bfe3da;color:#0f5246">Liquidación anticipada el '+fmtDate(s.liq.fecha)+': se cobró '+money(cuotaTotal(s.liq))+' (capital '+money(s.liq.capital)+' + interés '+money(s.liq.interes)+') y se dejaron de generar '+money(s.liq.interesAhorrado||0)+' de interés futuro. Para deshacer, toca “↺ Deshacer liquidación”.</div>':'')+
         (s.abonos?'<div class="note" style="background:#efeefe;border-color:#d4d1f7;color:#3730a3">Tiene '+s.abonos+' abono(s) extra a capital: el saldo bajó y el interés futuro se recalculó. Para deshacer, toca “↺ Deshacer abono”.</div>':'')+
+        (L.cuotas.some(c=>parcialDe(c)&&!c.pagado)?'<div class="note" style="background:#efeefe;border-color:#d4d1f7;color:#3730a3">Hay abono(s) parciales: el resto de esas cuotas sigue pendiente (se muestra “Parcial: pagado $X de $Y”). Para deshacer, toca “↺ Deshacer parcial”.</div>':'')+
         (s.ext?'<div class="note" style="background:#eef1f5;border-color:#d5dbe4;color:#3c4a5e">Plazo extendido de '+(s.total-s.ext)+' a '+s.total+' meses por '+s.ext+' pago(s) de solo interés. Fecha fin: '+fmtDate(s.fin)+' (antes '+fmtDate(s.finOrig)+'). Para deshacer, toca “↺ Deshacer” en la cuota de “Solo interés”.</div>':'')+
         '<div class="ce-bar"><b>Tabla de amortización</b><span class="spacer"></span><button class="btn sm" data-cedit="'+esc(L.id)+'">✎ Editar cuotas</button><button class="btn sm" data-edit="'+esc(L.id)+'">Editar préstamo</button></div>'+
         '<table class="responsive"><thead><tr><th>Nº</th><th>Fecha de pago</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th><th>Estado</th><th>Cobro</th></tr></thead><tbody>'+
-        L.cuotas.map(c=>{const e=estadoDe(c),k=L.id+"|"+c.n;return '<tr class="is-'+e+'"><td data-l="Nº">'+c.n+'</td><td data-l="Fecha de pago">'+fmtDate(c.fecha)+'</td><td class="num" data-l="Saldo inicial">'+money(c.saldoIni)+'</td><td class="num" data-l="Capital">'+money(c.capital)+'</td><td class="num" data-l="Interés">'+money(c.interes)+'</td><td class="num" data-l="Cuota"><b>'+money(cuotaTotal(c))+'</b>'+cargoNote(c)+'</td><td class="num" data-l="Saldo final">'+money(c.saldoFin)+'</td><td data-l="Estado"><span class="badge b-'+e+'">'+ESTADO_LABEL[e]+'</span>'+(esSoloInteres(c)?'<br><small class="muted">capital '+money(c.capitalAplazado||0)+' aplazado</small>':'')+(c.tipo==="liquidacion"?'<br><small class="muted">liquidación anticipada</small>':'')+(c.tipo==="abono"?'<br><small class="muted">abono a capital</small>':'')+'</td><td data-l="Cobro">'+cobroCell(L,c)+'</td></tr>';}).join("")+
+        L.cuotas.map(c=>{const e=estadoDe(c),k=L.id+"|"+c.n;return '<tr class="is-'+e+'"><td data-l="Nº">'+c.n+'</td><td data-l="Fecha de pago">'+fmtDate(c.fecha)+'</td><td class="num" data-l="Saldo inicial">'+money(c.saldoIni)+'</td><td class="num" data-l="Capital">'+money(c.capital)+'</td><td class="num" data-l="Interés">'+money(c.interes)+'</td><td class="num" data-l="Cuota"><b>'+money(cuotaTotal(c))+'</b>'+cargoNote(c)+parcialNote(c)+'</td><td class="num" data-l="Saldo final">'+money(c.saldoFin)+'</td><td data-l="Estado"><span class="badge b-'+e+'">'+ESTADO_LABEL[e]+'</span>'+(esSoloInteres(c)?'<br><small class="muted">capital '+money(c.capitalAplazado||0)+' aplazado</small>':'')+(c.tipo==="liquidacion"?'<br><small class="muted">liquidación anticipada</small>':'')+(c.tipo==="abono"?'<br><small class="muted">abono a capital</small>':'')+parcialNote(c)+'</td><td data-l="Cobro">'+cobroCell(L,c)+'</td></tr>';}).join("")+
         '<tr class="total"><td data-l="">Total</td><td data-l=""></td><td data-l=""></td><td class="num" data-l="Capital">'+money(L.cuotas.reduce((a,c)=>a+c.capital,0))+'</td><td class="num" data-l="Interés">'+money(s.interes)+'</td><td class="num" data-l="Cuota">'+money(L.cuotas.reduce((a,c)=>a+cuotaTotal(c),0))+(s.cargo?'<br><small class="cargo">incl. cargos '+money(s.cargo)+'</small>':'')+'</td><td data-l=""></td><td data-l=""></td><td data-l=""></td></tr>'+
         '</tbody></table><p class="muted" style="margin:8px 0 0">Origen: '+esc(L.origen||"Manual")+'</p></div></td></tr>';
     }
@@ -846,7 +872,7 @@ function renderPrestamos(){
 
 /* ---------- editor de cuotas ---------- */
 function startCuotaEdit(id){const L=state.loans.find(x=>x.id===id);if(!L)return;
-  ui.cuotaEdit={id,capital:r2(L.capital),rows:L.cuotas.map(c=>({orig:c,fecha:c.fecha,capital:c.capital,interes:c.interes,pagado:!!c.pagado,tipo:c.tipo||"",capitalAplazado:c.capitalAplazado,cargo:cargoDe(c),cargoDesc:c.cargoDesc||"",fechaPagoReal:c.fechaPagoReal||"",asumido:!!c.asumido}))};
+  ui.cuotaEdit={id,capital:r2(L.capital),rows:L.cuotas.map(c=>({orig:c,fecha:c.fecha,capital:c.capital,interes:c.interes,pagado:!!c.pagado,tipo:c.tipo||"",capitalAplazado:c.capitalAplazado,cargo:cargoDe(c),cargoDesc:c.cargoDesc||"",fechaPagoReal:c.fechaPagoReal||"",asumido:!!c.asumido,parcial:c.parcial,paqueteId:c.paqueteId,paqueteAntes:c.paqueteAntes}))};
   ui.open.add(id); renderPrestamos();}
 function ceCalc(){const d=ui.cuotaEdit;let saldo=d.capital;return d.rows.map(r=>{const ini=r2(saldo);saldo=r2(saldo-(+r.capital||0));return {ini,fin:saldo,total:r2((+r.capital||0)+(+r.interes||0)+(+r.cargo||0))};});}
 function ceSummaryHtml(){const d=ui.cuotaEdit;const sc=r2(d.rows.reduce((a,r)=>a+(+r.capital||0),0)),si=r2(d.rows.reduce((a,r)=>a+(+r.interes||0),0)),sg=r2(d.rows.reduce((a,r)=>a+(+r.cargo||0),0));
@@ -892,29 +918,48 @@ function ceAction(act,L){const d=ui.cuotaEdit;
     const sc=r2(d.rows.reduce((a,r)=>a+r.capital,0));
     if(Math.abs(sc-d.capital)>=0.005){if(!confirm("La suma del capital de las cuotas ("+money(sc)+") no coincide con el capital del préstamo ("+money(d.capital)+").\n¿Guardar y actualizar el capital del préstamo a "+money(sc)+"?"))return;L.capital=sc;}
     const calc=(function(){let s=L.capital;return d.rows.map(r=>{const ini=r2(s);s=r2(s-r.capital);return {ini,fin:s};});})();
-    L.cuotas=d.rows.map((r,i)=>Object.assign({n:i+1,fecha:r.fecha,saldoIni:calc[i].ini,capital:r2(r.capital),interes:r2(r.interes),saldoFin:calc[i].fin,pagado:r.pagado,fechaPagoReal:r.pagado?(r.fechaPagoReal||HOY):null,asumido:r.pagado&&!!r.asumido},r.cargo>0?{cargo:r2(r.cargo),cargoDesc:(r.cargoDesc||"").trim()||CARGO_DEF}:{},r.pagado&&r.tipo?extraFields(r):{}));
+    L.cuotas=d.rows.map((r,i)=>Object.assign({n:i+1,fecha:r.fecha,saldoIni:calc[i].ini,capital:r2(r.capital),interes:r2(r.interes),saldoFin:calc[i].fin,pagado:r.pagado,fechaPagoReal:r.pagado?(r.fechaPagoReal||HOY):null,asumido:r.pagado&&!!r.asumido},r.cargo>0?{cargo:r2(r.cargo),cargoDesc:(r.cargoDesc||"").trim()||CARGO_DEF}:{},r.pagado&&r.tipo?extraFields(r):{},keepParcial(r)));
     if(!L.cuotas.some(esExtra)) L.plazo=L.cuotas.length-L.cuotas.filter(esSoloInteres).length; ui.cuotaEdit=null; save(); renderAll(); toast("Cuotas guardadas");return;}
   renderPrestamos();
 }
 
 function extraFields(r){const o={tipo:r.tipo};if(r.tipo==="interes"){o.capitalAplazado=r.capitalAplazado;if(r.orig&&r.orig.cargoAplazado)o.cargoAplazado=r.orig.cargoAplazado;}
-  if(r.orig&&r.orig.tipo===r.tipo)["nota","reemplazadas","antes","finAntes","interesAhorrado"].forEach(k=>{if(r.orig[k]!==undefined)o[k]=r.orig[k];});return o;}
-/* ---------- cobro: abonar (completo / solo interés), deshacer ---------- */
+  if(r.orig&&r.orig.tipo===r.tipo)["nota","reemplazadas","antes","finAntes","interesAhorrado","paqueteId","paqueteAntes"].forEach(k=>{if(r.orig[k]!==undefined)o[k]=r.orig[k];});return o;}
+function keepParcial(r){const o={};const src=r.parcial||(r.orig&&r.orig.parcial);if(src)o.parcial=JSON.parse(JSON.stringify(src));
+  const pid=r.paqueteId||(r.orig&&r.orig.paqueteId); if(pid)o.paqueteId=pid;
+  const pa=r.paqueteAntes||(r.orig&&r.orig.paqueteAntes); if(pa)o.paqueteAntes=JSON.parse(JSON.stringify(pa));
+  return o;}
+/* ---------- cobro: abono de la cuota / parcial / completo, deshacer ---------- */
 function cobroCell(L,c){
   const k=L.id+"|"+c.n;
-  if(!c.pagado) return '<div class="paybox"><button class="btn sm abonar" data-abonar="'+esc(k)+'" type="button">Abonar ▾</button></div>';
+  if(!c.pagado) return '<div class="paybox"><button class="btn sm abonar" data-abonar="'+esc(k)+'" type="button">Abonar ▾</button>'+
+    (parcialDe(c)?'<button class="btn sm undo" data-undo="'+esc(k)+'" type="button" title="Deshacer el último abono parcial">↺ Deshacer parcial</button>':'')+'</div>';
   return '<div class="paybox"><input type="date" class="paydate" data-k="'+esc(k)+'" value="'+esc(c.fechaPagoReal||"")+'" title="Fecha real de pago'+(c.asumido?' (asumida)':'')+'">'+
-    '<button class="btn sm undo" data-undo="'+esc(k)+'" type="button" title="Deshacer: volver a Pendiente'+(esSoloInteres(c)?' y quitar el mes agregado':'')+'">↺ Deshacer'+(c.tipo==="liquidacion"?' liquidación':c.tipo==="abono"?' abono':'')+'</button></div>';
+    '<button class="btn sm undo" data-undo="'+esc(k)+'" type="button" title="Deshacer: volver a Pendiente'+(esSoloInteres(c)?' y quitar el mes agregado':'')+(c.paqueteAntes?' (incluye el abono extra)':'')+'">↺ Deshacer'+(c.tipo==="liquidacion"?' liquidación':c.tipo==="abono"?' abono':parcialDe(c)?' parcial':'')+'</button></div>';
 }
-function laterPaid(L,idx){return L.cuotas.slice(idx+1).some(c=>c.pagado);}
+function laterPaid(L,idx){const id=L.cuotas[idx]&&L.cuotas[idx].paqueteId;return L.cuotas.slice(idx+1).some(c=>c.pagado&&(!id||c.paqueteId!==id));}
 function renumber(L){L.cuotas.forEach((c,i)=>{c.n=i+1;});}
-function recalcFrom(L,idx){ // saldos en cadena; interés = tasa × saldo inicial en cuotas pendientes
+function recalcFrom(L,idx){ // saldos en cadena; interés = tasa × saldo inicial en cuotas pendientes (no se toca si ya hay un abono parcial)
   let saldo=idx>0?L.cuotas[idx-1].saldoFin:r2(L.capital);
-  for(let i=idx;i<L.cuotas.length;i++){const c=L.cuotas[i];c.saldoIni=r2(saldo);c.saldoFin=r2(saldo-c.capital);if(!c.pagado)c.interes=r2(c.saldoIni*L.tasa/100);saldo=c.saldoFin;}
+  for(let i=idx;i<L.cuotas.length;i++){
+    const c=L.cuotas[i];c.saldoIni=r2(saldo);
+    const capPago=c.pagado?c.capital:r2(c.capital+capPagadoParcial(c)); // capital ya cubierto + lo que sigue pendiente en esta cuota
+    c.saldoFin=r2(saldo-capPago);
+    if(!c.pagado&&!c.parcial)c.interes=r2(c.saldoIni*L.tasa/100);
+    saldo=c.saldoFin;
+  }
 }
 function pagarCompleto(k){const f=findCuota(k);if(!f||!f.c||f.c.pagado)return;
-  f.c.pagado=true;delete f.c.tipo;f.c.fechaPagoReal=HOY;f.c.asumido=false;save();renderAll();
-  toast("Pago completo registrado: "+shortName(f.L.persona)+" "+f.c.n+"/"+f.L.cuotas.length+" ("+money(cuotaTotal(f.c))+")");}
+  const L=f.L,c=f.c,idx=L.cuotas.indexOf(c),resto=cuotaTotal(c);
+  if(c.parcial&&c.parcial.orig){
+    const todas=JSON.parse(JSON.stringify(L.cuotas)), o=c.parcial.orig;
+    c.parcial.hist=c.parcial.hist||[]; c.parcial.hist.push({tipo:"completar",fecha:HOY,todas});
+    c.capital=o.capital;c.interes=o.interes;
+    if(o.cargo>0){c.cargo=o.cargo;c.cargoDesc=o.cargoDesc||CARGO_DEF;}else{delete c.cargo;delete c.cargoDesc;}
+    c.parcial.monto=origTotal(c);
+  }
+  c.pagado=true;delete c.tipo;c.fechaPagoReal=HOY;c.asumido=false;recalcFrom(L,idx);save();renderAll();
+  toast("Abono de la cuota registrado: "+shortName(L.persona)+" "+c.n+"/"+L.cuotas.length+" ("+money(resto)+")");}
 /* Solo interés: la cuota queda cobrada solo con su interés (capital 0, saldo igual) y se inserta una cuota nueva con el
    capital aplazado; esa y todas las siguientes se corren un mes (cada una toma la fecha de la siguiente; la última +1 mes). */
 function pagarSoloInteres(k){
@@ -935,7 +980,20 @@ function pagarSoloInteres(k){
   toast("Solo interés registrado ("+money(c.interes)+"). Capital "+money(capAplazado)+" pasa al "+fmtDate(L.cuotas[idx+1].fecha)+" · plazo "+st.plazoOrig+" → "+st.total+" meses");
 }
 function deshacer(k){
-  const f=findCuota(k);if(!f||!f.c||!f.c.pagado)return;const L=f.L,idx=L.cuotas.indexOf(f.c),c=f.c;
+  const f=findCuota(k);if(!f||!f.c)return;const L=f.L,idx=L.cuotas.indexOf(f.c),c=f.c;
+  if(!c.pagado && !(c.parcial&&c.parcial.hist&&c.parcial.hist.length)) return;
+  if(c.paqueteAntes){
+    if(laterPaid(L,idx)){alert("Para deshacer primero desmarca las cuotas posteriores que ya están pagadas.");return;}
+    L.cuotas=JSON.parse(JSON.stringify(c.paqueteAntes));renumber(L);recalcFrom(L,0);save();renderAll();
+    toast("Se deshizo el pago y el abono extra a capital");return;
+  }
+  if(c.parcial&&c.parcial.hist&&c.parcial.hist.length){
+    if(laterPaid(L,idx)){alert("Para deshacer este abono primero desmarca las cuotas posteriores que ya están pagadas.");return;}
+    const last=c.parcial.hist[c.parcial.hist.length-1];
+    L.cuotas=JSON.parse(JSON.stringify(last.todas));renumber(L);recalcFrom(L,0);save();renderAll();
+    toast(c.pagado?"Se deshizo el pago de la cuota":"Abono parcial deshecho: la cuota vuelve al estado anterior");return;
+  }
+  if(!c.pagado) return;
   if(c.tipo==="liquidacion"||c.tipo==="abono"){
     const ok=deshacerAnticipado(L,idx);
     if(ok){save();renderAll();toast(c.tipo==="liquidacion"?"Liquidación deshecha: las cuotas vuelven a estar pendientes":"Abono deshecho: se restauró el saldo y las cuotas");}
@@ -953,20 +1011,142 @@ function deshacer(k){
     toast("Cuota marcada como pendiente: "+shortName(L.persona)+" "+c.n+"/"+L.cuotas.length);
   }
 }
+function destinarParcial(c,monto){
+  let left=r2(monto);
+  const pagadoInt=r2(Math.min(left,c.interes||0)); left=r2(left-pagadoInt);
+  const pagadoCargo=r2(Math.min(left,cargoDe(c))); left=r2(left-pagadoCargo);
+  const pagadoCap=r2(Math.min(left,c.capital||0)); left=r2(left-pagadoCap);
+  return {pagadoInt,pagadoCargo,pagadoCap,extra:left,aplicado:r2(monto-left)};
+}
+function maxParcial(L,idx){
+  const c=L.cuotas[idx];
+  const later=r2(L.cuotas.slice(idx+1).filter(x=>!x.pagado).reduce((a,x)=>a+x.capital,0));
+  return r2(cuotaTotal(c)+later);
+}
+function aplicarAbonoDesde(L,monto,fecha,fromIdx){
+  const afterCap=r2(L.cuotas.slice(fromIdx).filter(c=>!c.pagado).reduce((a,c)=>a+c.capital,0));
+  const A=r2(Math.min(monto,afterCap)); if(!(A>0)) return null;
+  const finAntes=L.cuotas[L.cuotas.length-1].fecha, antes=JSON.parse(JSON.stringify(L.cuotas.slice(fromIdx)));
+  const intAntes=r2(antes.filter(c=>!c.pagado).reduce((a,c)=>a+c.interes,0));
+  let left=A; for(let i=L.cuotas.length-1;i>=fromIdx&&left>0.0001;i--){const c=L.cuotas[i];if(c.pagado)continue;const tk=Math.min(left,c.capital);c.capital=r2(c.capital-tk);left=r2(left-tk);if(c.capital<=0.004&&!(cargoDe(c)>0)&&!parcialDe(c))L.cuotas.splice(i,1);}
+  L.cuotas.splice(fromIdx,0,{n:0,fecha,saldoIni:0,capital:A,interes:0,saldoFin:0,pagado:true,fechaPagoReal:fecha,asumido:false,tipo:"abono",nota:"Abono extra a capital",finAntes,antes});
+  renumber(L); recalcFrom(L,0);
+  const intDesp=r2(L.cuotas.slice(fromIdx+1).filter(c=>!c.pagado).reduce((a,c)=>a+c.interes,0));
+  const ahorro=r2(intAntes-intDesp); L.cuotas[fromIdx].interesAhorrado=ahorro;
+  return {monto:A,ahorro};
+}
+function aplicarParcial(L,idx,monto,fecha){
+  const c=L.cuotas[idx]; if(!c||c.pagado||!(monto>0)) return null;
+  const todas=JSON.parse(JSON.stringify(L.cuotas)), d=destinarParcial(c,monto);
+  const covers=!(r2(cuotaTotal(c)-d.pagadoInt-d.pagadoCargo-d.pagadoCap)>0.004);
+  if(covers&&!c.parcial&&d.extra<=0){
+    c.pagado=true;delete c.tipo;c.fechaPagoReal=fecha;c.asumido=false;
+    return {tipo:"completo",d,msg:"Abono de la cuota registrado ("+money(cuotaTotal(c))+")"};
+  }
+  if(covers&&!c.parcial&&d.extra>0){
+    const pack=JSON.parse(JSON.stringify(L.cuotas)), packId="p"+Date.now();
+    c.pagado=true;delete c.tipo;c.fechaPagoReal=fecha;c.asumido=false;c.paqueteId=packId;c.paqueteAntes=pack;
+    const ab=aplicarAbonoDesde(L,d.extra,fecha,L.cuotas.indexOf(c)+1);
+    if(ab){const row=L.cuotas[L.cuotas.indexOf(c)+1];row.paqueteId=packId;row.paqueteAntes=pack;}
+    recalcFrom(L,0);
+    return {tipo:"completo+extra",d,ab,msg:"Cuota pagada y abono extra de "+money(d.extra)+" a capital"+(ab?" (ahorras "+money(ab.ahorro)+" de interés futuro)":"")};
+  }
+  if(!c.parcial) c.parcial={monto:0,fecha,orig:{capital:c.capital,interes:c.interes,cargo:cargoDe(c),cargoDesc:c.cargoDesc||""},hist:[]};
+  c.parcial.hist.push({fecha,monto,d,todas});
+  c.interes=r2(c.interes-d.pagadoInt);
+  if(d.pagadoCargo>0){c.cargo=r2(cargoDe(c)-d.pagadoCargo);if(!(c.cargo>0.004)){delete c.cargo;delete c.cargoDesc;}}
+  c.capital=r2(c.capital-d.pagadoCap);
+  c.parcial.monto=r2((c.parcial.monto||0)+d.pagadoInt+d.pagadoCargo+d.pagadoCap);
+  c.parcial.fecha=fecha;
+  let ab=null;
+  if(covers){
+    const o=c.parcial.orig;
+    c.capital=o.capital;c.interes=o.interes;
+    if(o.cargo>0){c.cargo=o.cargo;c.cargoDesc=o.cargoDesc||CARGO_DEF;}else{delete c.cargo;delete c.cargoDesc;}
+    c.pagado=true;c.fechaPagoReal=fecha;c.asumido=false;delete c.tipo;
+    c.parcial.monto=origTotal(c);
+    if(d.extra>0){
+      const packId="p"+Date.now();
+      c.paqueteId=packId;c.paqueteAntes=todas;
+      ab=aplicarAbonoDesde(L,d.extra,fecha,L.cuotas.indexOf(c)+1);
+      if(ab){const row=L.cuotas[L.cuotas.indexOf(c)+1];row.paqueteId=packId;row.paqueteAntes=todas;}
+    }
+  }
+  recalcFrom(L,0);
+  if(covers) return {tipo:"completar",d,ab,msg:d.extra>0?("Cuota completada y abono extra de "+money(d.extra)+" a capital"+(ab?" (ahorras "+money(ab.ahorro)+" de interés futuro)":"")):"Cuota completada ("+money(c.parcial.monto)+")"};
+  return {tipo:"parcial",d,msg:"Abono parcial de "+money(d.aplicado)+" registrado. Parcial: pagado "+money(c.parcial.monto)+" de "+money(origTotal(c))+". Quedan "+money(cuotaTotal(c))+" pendientes en esta cuota."};
+}
+function pagarParcial(k,monto){
+  const f=findCuota(k);if(!f||!f.c||f.c.pagado)return;const L=f.L,c=f.c,idx=L.cuotas.indexOf(c);
+  monto=r2(monto); if(!(monto>0)){alert("Escribe el monto que te pagaron.");return;}
+  const max=maxParcial(L,idx);
+  if(monto>max+0.004){if(!confirm("El máximo para un abono parcial en esta cuota es "+money(max)+" (esta cuota + el capital de las siguientes). ¿Aplicar "+money(max)+"?"))return;monto=max;}
+  const r=aplicarParcial(L,idx,monto,HOY); if(!r){alert("No se pudo aplicar el abono.");return;}
+  save();renderAll();toast(r.msg);
+}
+function liquidarPrestamo(id){
+  const L=state.loans.find(x=>x.id===id); if(!L)return; const s=situacion(L); if(!s)return;
+  if(!confirm("¿Liquidar todo el préstamo de "+shortName(L.persona)+" hoy ("+fmtDate(HOY)+")?\n\nPagas "+money(s.pago)+" (capital "+money(s.saldo)+(s.intC?" + interés de este mes "+money(s.intC):"")+(s.cargos?" + cargos "+money(s.cargos):"")+") y evitas "+money(s.ahorro)+" de interés futuro.\n\nSe puede deshacer desde la tabla del préstamo.")) return;
+  aplicarLiquidacion(L,HOY); save(); renderAll();
+  toast("Préstamo liquidado: "+shortName(L.persona)+" ("+money(s.pago)+")");
+}
+function updateParcialHint(){
+  const m=$("#abonoMenu"), inp=$("#aParcialMonto"), h=$("#aParcialHint"); if(!m||!inp||!h||!m.dataset.k)return;
+  const f=findCuota(m.dataset.k); if(!f||!f.c)return; const L=f.L,c=f.c,idx=L.cuotas.indexOf(c);
+  const monto=r2(parseFloat(inp.value)||0), max=maxParcial(L,idx), sit=situacion(L);
+  if(!(monto>0)){h.innerHTML="Primero se cubre el interés y el cargo, luego el capital. Si pagas más que la cuota, el resto baja el capital de las cuotas siguientes y se recalcula el interés futuro.";return;}
+  const d=destinarParcial(c,Math.min(monto,max));
+  const parts=[];
+  if(d.pagadoInt)parts.push("interés "+money(d.pagadoInt));
+  if(d.pagadoCargo)parts.push("cargo "+money(d.pagadoCargo));
+  if(d.pagadoCap)parts.push("capital "+money(d.pagadoCap));
+  let txt=parts.length?"Se cubre "+parts.join(", ")+".":"El monto no alcanza a cubrir un rubro.";
+  const resto=r2(cuotaTotal(c)-d.pagadoInt-d.pagadoCargo-d.pagadoCap);
+  if(resto>0.004) txt+=" La cuota queda pendiente: <b>Parcial: pagado "+money(d.aplicado)+" de "+money(origTotal(c))+"</b> (restan "+money(resto)+").";
+  else txt+=" Con esto se paga completa esta cuota ("+money(cuotaTotal(c))+").";
+  if(d.extra>0){const ah=function(){const copia=clone(L);const r=aplicarParcial(copia,idx,Math.min(monto,max),HOY);return r&&r.ab?r.ab.ahorro:0;}();
+    txt+=" Los "+money(d.extra)+" extra van a capital de las cuotas siguientes"+(ah?" y se evitan "+money(ah)+" de interés futuro":"")+".";}
+  if(monto>max+0.004) txt+=" El máximo aquí es "+money(max)+".";
+  if(sit&&monto>=sit.pago-0.004) txt+=" Con "+money(sit.pago)+" puedes liquidar todo el préstamo (usa Abono completo).";
+  h.innerHTML=txt;
+}
+function placeAbonoMenu(btn){
+  const m=$("#abonoMenu"); if(!m||m.hidden)return;
+  const anchor=btn||m._btn;
+  const r=anchor&&anchor.getBoundingClientRect?anchor.getBoundingClientRect():{left:8,right:8,top:8,bottom:8};
+  const vw=window.innerWidth, vh=window.innerHeight, pad=8;
+  const mw=m.offsetWidth, mh=m.offsetHeight;
+  let x=Math.min(r.right-mw, vw-mw-pad); x=Math.max(pad,x);
+  if(x+mw>vw-pad) x=Math.max(4,vw-mw-pad);
+  let y=r.bottom+6;
+  if(y+mh>vh-pad) y=r.top-mh-6;
+  if(y<pad || y+mh>vh-pad) y=Math.max(4, Math.min(y, vh-mh-pad));
+  if(y<4) y=4;
+  m.style.left=Math.round(x)+"px"; m.style.top=Math.round(y)+"px";
+}
 function openAbono(btn){
   const f=findCuota(btn.dataset.abonar);if(!f||!f.c)return;const {L,c}=f,idx=L.cuotas.indexOf(c),blocked=laterPaid(L,idx);
-  const m=$("#abonoMenu"), k=btn.dataset.abonar, intOnly=r2(c.saldoIni*L.tasa/100);
+  const m=$("#abonoMenu"), k=btn.dataset.abonar, intOnly=r2(c.saldoIni*L.tasa/100), sit=situacion(L);
+  const resto=cuotaTotal(c), ya=parcialDe(c), orig=origTotal(c);
+  const noSolo=blocked||!(c.capital>0)||ya>0;
+  m.dataset.k=k; m._btn=btn;
   m.innerHTML='<div class="hd">Abonar cuota '+c.n+'/'+L.cuotas.length+' · '+esc(shortName(L.persona))+' · '+fmtDate(c.fecha)+'</div>'+
-    '<button type="button" data-pay="completo" data-k="'+esc(k)+'"><span>Pago completo<small>Capital '+money(c.capital)+' + interés '+money(c.interes)+(cargoDe(c)?' + cargo '+money(cargoDe(c)):'')+'</small></span><b>'+money(cuotaTotal(c))+'</b></button>'+
-    '<button type="button" data-pay="interes" data-k="'+esc(k)+'"'+(blocked||!(c.capital>0)?' disabled':'')+'><span>Solo interés<small>El capital '+money(c.capital)+(cargoDe(c)?' y el cargo '+money(cargoDe(c)):'')+' se corre'+(cargoDe(c)?'n':'')+' un mes (+1 mes de plazo)</small></span><b>'+money(intOnly)+'</b></button>'+
-    (blocked?'<div class="note2">Solo interés no disponible: hay cuotas posteriores pagadas.</div>':'');
-  m.hidden=false;
-  const r=btn.getBoundingClientRect(), mw=m.offsetWidth, mh=m.offsetHeight;
-  let x=Math.min(r.right-mw, window.innerWidth-mw-8); x=Math.max(8,x);
-  let y=r.bottom+6; if(y+mh>window.innerHeight-8) y=Math.max(8,r.top-mh-6);
-  m.style.left=x+"px"; m.style.top=y+"px";
+    '<button type="button" data-pay="completo" data-k="'+esc(k)+'"><span>Abono de la cuota<small>'+(ya?'Resto de la cuota: capital '+money(c.capital)+' + interés '+money(c.interes)+(cargoDe(c)?' + cargo '+money(cargoDe(c)):'')+' (ya pagado '+money(ya)+' de '+money(orig)+')':'Capital '+money(c.capital)+' + interés '+money(c.interes)+(cargoDe(c)?' + cargo '+money(cargoDe(c)):'')+'')+'</small></span><b>'+money(resto)+'</b></button>'+
+    '<div class="blk">'+
+      '<div class="ttl">Abono parcial</div>'+
+      '<p class="rule">Escribe el monto que te pagaron. Primero se cubre el <b>interés</b> y el <b>cargo</b>, luego el <b>capital</b>. Si pagas más que esta cuota, el resto baja el capital de las cuotas siguientes y se recalcula el interés futuro (igual que un abono extra). Si pagas menos, la cuota queda pendiente y se muestra “Parcial: pagado $X de $Y”.</p>'+
+      '<button type="button" class="btn sm solo" data-pay="interes" data-k="'+esc(k)+'"'+(noSolo?' disabled':'')+'><span>Solo interés<small>El capital '+money(c.capital)+(cargoDe(c)?' y el cargo '+money(cargoDe(c)):'')+' se corre'+(cargoDe(c)?'n':'')+' un mes (+1 mes de plazo)'+(ya?'':'')+'</small></span><b>'+money(intOnly)+'</b></button>'+
+      (blocked?'<div class="note2">Solo interés no disponible: hay cuotas posteriores pagadas.</div>':'')+
+      (ya&&!blocked?'<div class="note2">Solo interés no disponible: esta cuota ya tiene un abono parcial.</div>':'')+
+      '<form id="aParcialForm" data-k="'+esc(k)+'"><label for="aParcialMonto">Monto recibido</label>'+
+      '<input type="number" id="aParcialMonto" step="0.01" min="0.01" inputmode="decimal" enterkeyhint="done" placeholder="0.00" autocomplete="off">'+
+      '<div class="hint" id="aParcialHint">Primero se cubre el interés y el cargo, luego el capital. Si pagas más que la cuota, el resto baja el capital de las cuotas siguientes y se recalcula el interés futuro.</div>'+
+      '<button type="submit" class="btn sm pri aplicar">Aplicar abono parcial</button></form>'+
+    '</div>'+
+    (sit?'<button type="button" data-pay="liquidar" data-id="'+esc(L.id)+'" data-k="'+esc(k)+'"><span>Abono completo<small>Liquidar el préstamo hoy: capital pendiente '+money(sit.saldo)+(sit.intC?' + interés de este mes '+money(sit.intC):'')+(sit.cargos?' + cargos '+money(sit.cargos):'')+', sin interés futuro (ahorras '+money(sit.ahorro)+')</small></span><b>'+money(sit.pago)+'</b></button>':'');
+  m.hidden=false; placeAbonoMenu(btn);
 }
-function closeAbono(){const m=$("#abonoMenu");if(m)m.hidden=true;}
+function closeAbono(){const m=$("#abonoMenu");if(m){m.hidden=true;m._btn=null;}}
 
 /* ---------- asistente de abonos: liquidación / abono extra / optimizador ---------- */
 /* Situación actual de un préstamo vigente. "Ahora" (C) = cuotas vencidas sin pagar + la primera cuota pendiente de este mes:
@@ -1141,9 +1321,9 @@ function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show"
 function download(name,content,type){const b=new Blob([content],{type});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
 function csvCell(v){v=String(v==null?"":v);return /[",;\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
 function buildCsv(rows){
-  const head=["Persona","Cédula","Préstamo (capital)","Fecha transferencia","Cuota Nº","Total cuotas","Fecha de pago","Capital","Interés","Cargo adicional","Descripción cargo","Cuota","Saldo después","Estado","Fecha pago real"];
+  const head=["Persona","Cédula","Préstamo (capital)","Fecha transferencia","Cuota Nº","Total cuotas","Fecha de pago","Capital","Interés","Cargo adicional","Descripción cargo","Cuota","Saldo después","Estado","Fecha pago real","Abono parcial","Cuota original"];
   const lines=[head.map(csvCell).join(",")];
-  rows.forEach(r=>lines.push([r.L.persona,r.L.cedula,r2(r.L.capital).toFixed(2),fmtDate(r.L.transferencia),r.c.n,r.L.cuotas.length,fmtDate(r.c.fecha),r.c.capital.toFixed(2),r.c.interes.toFixed(2),cargoDe(r.c)?cargoDe(r.c).toFixed(2):"",cargoDe(r.c)?(r.c.cargoDesc||CARGO_DEF):"",r.total.toFixed(2),r.c.saldoFin.toFixed(2),ESTADO_LABEL[r.estado],r.c.pagado?fmtDate(r.c.fechaPagoReal):""].map(csvCell).join(",")));
+  rows.forEach(r=>lines.push([r.L.persona,r.L.cedula,r2(r.L.capital).toFixed(2),fmtDate(r.L.transferencia),r.c.n,r.L.cuotas.length,fmtDate(r.c.fecha),r.c.capital.toFixed(2),r.c.interes.toFixed(2),cargoDe(r.c)?cargoDe(r.c).toFixed(2):"",cargoDe(r.c)?(r.c.cargoDesc||CARGO_DEF):"",r.total.toFixed(2),r.c.saldoFin.toFixed(2),ESTADO_LABEL[r.estado],r.c.pagado?fmtDate(r.c.fechaPagoReal):"",parcialDe(r.c)?parcialDe(r.c).toFixed(2):"",parcialDe(r.c)?origTotal(r.c).toFixed(2):""].map(csvCell).join(",")));
   return "\ufeff"+lines.join("\r\n");
 }
 function validLoans(d){
@@ -1241,13 +1421,21 @@ function bind(){
     renderFilterOptions();renderCuotas();});
   document.addEventListener("click",e=>{
     const ab=e.target.closest("[data-abonar]"); if(ab){e.stopPropagation(); const m=$("#abonoMenu"); if(!m.hidden&&m.dataset.k===ab.dataset.abonar){closeAbono();return;} m.dataset.k=ab.dataset.abonar; openAbono(ab); return;}
-    const pay=e.target.closest("#abonoMenu [data-pay]"); if(pay){closeAbono(); if(pay.dataset.pay==="completo") pagarCompleto(pay.dataset.k); else pagarSoloInteres(pay.dataset.k); return;}
+    const pay=e.target.closest("#abonoMenu [data-pay]"); if(pay){
+      if(pay.dataset.pay==="parcial") return; // el form hace submit
+      closeAbono();
+      if(pay.dataset.pay==="completo") pagarCompleto(pay.dataset.k);
+      else if(pay.dataset.pay==="interes") pagarSoloInteres(pay.dataset.k);
+      else if(pay.dataset.pay==="liquidar") liquidarPrestamo(pay.dataset.id);
+      return;}
     const un=e.target.closest("[data-undo]"); if(un){e.stopPropagation(); deshacer(un.dataset.undo); return;}
     if(!e.target.closest("#abonoMenu")) closeAbono();
   },true);
-  window.addEventListener("scroll",closeAbono,{passive:true}); window.addEventListener("resize",closeAbono);
+  window.addEventListener("scroll",()=>{const m=$("#abonoMenu"); if(m&&!m.hidden) placeAbonoMenu(m._btn);},{passive:true});
+  window.addEventListener("resize",()=>{const m=$("#abonoMenu"); if(m&&!m.hidden) placeAbonoMenu(m._btn);});
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAbono();});
-  document.addEventListener("input",e=>{if(e.target.matches("[data-ce]"))ceInput(e.target);});
+  document.addEventListener("submit",e=>{if(e.target.id!=="aParcialForm")return; e.preventDefault(); const k=e.target.dataset.k; const monto=r2(parseFloat(($("#aParcialMonto")||{}).value)||0); if(!(monto>0)){alert("Escribe el monto que te pagaron."); const i=$("#aParcialMonto"); if(i)i.focus(); return;} closeAbono(); pagarParcial(k,monto);});
+  document.addEventListener("input",e=>{if(e.target.matches("[data-ce]"))ceInput(e.target); if(e.target.id==="aParcialMonto")updateParcialHint();});
   document.addEventListener("change",e=>{
     if(e.target.matches("[data-ce]")){ceInput(e.target);return;}
     if(e.target.matches("input.paydate")) setFechaPago(e.target.dataset.k,e.target.value);
@@ -1332,7 +1520,7 @@ function bind(){
   if(sync.dirty&&!autoSave()) setStatus("local");
   syncFromRemote();
 })();
-window.__app={calcularPlan,situacion,aplicarLiquidacion,aplicarAbono,totalesCartera,ahorroAbono,pagarSoloInteres,pagarCompleto,deshacer,sync,push,pushNow,syncFromRemote,setAutoSave,autoSave,GH_OWNER,GH_REPO,SEED_VERSION,state:()=>state,ui,HOY,filteredRows,sumRows,monthlySummary,loanStats,generarCuotas,renderAll,buildCsv};
+window.__app={calcularPlan,situacion,aplicarLiquidacion,aplicarAbono,aplicarParcial,aplicarAbonoDesde,destinarParcial,maxParcial,pagarParcial,liquidarPrestamo,totalesCartera,ahorroAbono,pagarSoloInteres,pagarCompleto,deshacer,sync,push,pushNow,syncFromRemote,setAutoSave,autoSave,GH_OWNER,GH_REPO,SEED_VERSION,state:()=>state,ui,HOY,filteredRows,sumRows,monthlySummary,loanStats,generarCuotas,renderAll,buildCsv};
 </script>
 </body>
 </html>
