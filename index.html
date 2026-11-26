@@ -849,7 +849,7 @@ function renderPrestamos(){
       '<td data-l="Estado"><div><span class="badge '+(s.estado==="pagado"?"b-pagado":"b-vigente")+'">'+(s.estado==="pagado"?"Pagado":"Vigente")+'</span>'+
         (s.vencidas?' <span class="badge b-vencido">'+s.vencidas+' vencida'+(s.vencidas>1?"s":"")+'</span>':'')+
         '<div class="progress" title="'+s.pagadas+' de '+s.total+' cuotas pagadas"><i style="width:'+pct+'%"></i></div><small class="muted">'+s.pagadas+'/'+s.total+' cuotas</small></div></td>'+
-      '<td data-l=""><div class="actions"><button class="btn sm" data-edit="'+esc(L.id)+'">Editar</button><button class="btn sm danger" data-del="'+esc(L.id)+'">Eliminar</button></div></td></tr>';
+      '<td data-l=""><div class="actions"><button class="btn sm" data-renovar="'+esc(L.id)+'">Renovar</button><button class="btn sm" data-edit="'+esc(L.id)+'">Editar</button><button class="btn sm danger" data-del="'+esc(L.id)+'">Eliminar</button></div></td></tr>';
     if(open && ui.cuotaEdit && ui.cuotaEdit.id===L.id){
       h+='<tr class="expand"><td colspan="11"><div class="inner">'+renderCuotaEditor(L)+'</div></td></tr>';
     } else if(open){
@@ -859,7 +859,7 @@ function renderPrestamos(){
         (s.abonos?'<div class="note" style="background:#efeefe;border-color:#d4d1f7;color:#3730a3">Tiene '+s.abonos+' abono(s) extra a capital: el saldo bajó y el interés futuro se recalculó. Para deshacer, toca “↺ Deshacer abono”.</div>':'')+
         (L.cuotas.some(c=>parcialDe(c)&&!c.pagado)?'<div class="note" style="background:#efeefe;border-color:#d4d1f7;color:#3730a3">Hay abono(s) parciales (se muestra “Parcial $X/$Y”). Para deshacer, toca “↺ Deshacer parcial”.</div>':'')+
         (s.ext?'<div class="note" style="background:#eef1f5;border-color:#d5dbe4;color:#3c4a5e">Plazo extendido de '+(s.total-s.ext)+' a '+s.total+' meses por '+s.ext+' pago(s) de solo interés. Fecha fin: '+fmtDate(s.fin)+' (antes '+fmtDate(s.finOrig)+'). Para deshacer, toca “↺ Deshacer” en la cuota de “Solo interés”.</div>':'')+
-        '<div class="ce-bar"><b>Tabla de amortización</b><span class="spacer"></span><button class="btn sm" data-cedit="'+esc(L.id)+'">✎ Editar cuotas</button><button class="btn sm" data-edit="'+esc(L.id)+'">Editar préstamo</button></div>'+
+        '<div class="ce-bar"><b>Tabla de amortización</b><span class="spacer"></span><button class="btn sm" data-renovar="'+esc(L.id)+'">Renovar</button><button class="btn sm" data-cedit="'+esc(L.id)+'">✎ Editar cuotas</button><button class="btn sm" data-edit="'+esc(L.id)+'">Editar préstamo</button></div>'+
         '<table class="responsive"><thead><tr><th>Nº</th><th>Fecha de pago</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th><th>Estado</th><th>Cobro</th></tr></thead><tbody>'+
         L.cuotas.map(c=>{const e=estadoDe(c),k=L.id+"|"+c.n;return '<tr class="is-'+e+'"><td data-l="Nº">'+c.n+'</td><td data-l="Fecha de pago">'+fmtDate(c.fecha)+'</td><td class="num" data-l="Saldo inicial">'+money(c.saldoIni)+'</td><td class="num" data-l="Capital">'+money(c.capital)+'</td><td class="num" data-l="Interés">'+money(c.interes)+'</td><td class="num" data-l="Cuota"><b>'+money(cuotaTotal(c))+'</b>'+cargoNote(c)+parcialNote(c)+'</td><td class="num" data-l="Saldo final">'+money(c.saldoFin)+'</td><td data-l="Estado"><span class="badge b-'+e+'">'+ESTADO_LABEL[e]+'</span>'+(esSoloInteres(c)?'<br><small class="muted">capital '+money(c.capitalAplazado||0)+' aplazado</small>':'')+(c.tipo==="liquidacion"?'<br><small class="muted">liquidación anticipada</small>':'')+(c.tipo==="abono"?'<br><small class="muted">abono a capital</small>':'')+parcialNote(c)+'</td><td data-l="Cobro">'+cobroCell(L,c)+'</td></tr>';}).join("")+
         '<tr class="total"><td data-l="">Total</td><td data-l=""></td><td data-l=""></td><td class="num" data-l="Capital">'+money(L.cuotas.reduce((a,c)=>a+c.capital,0))+'</td><td class="num" data-l="Interés">'+money(s.interes)+'</td><td class="num" data-l="Cuota">'+money(L.cuotas.reduce((a,c)=>a+cuotaTotal(c),0))+(s.cargo?'<br><small class="cargo">incl. cargos '+money(s.cargo)+'</small>':'')+'</td><td data-l=""></td><td data-l=""></td><td data-l=""></td></tr>'+
@@ -1340,8 +1340,22 @@ function validLoans(d){
 }
 
 /* ---------- formulario préstamo ---------- */
+function openRenovar(id){
+  const L=state.loans.find(x=>x.id===id); if(!L)return;
+  openForm(null);
+  $("#mTitle").textContent="Renovar préstamo";
+  $("#iPersona").value=L.persona; $("#iCedula").value=L.cedula||"";
+  $("#iCapital").value=L.capital; $("#iTasa").value=L.tasa;
+  const plazo=Number(L.plazo)>0?L.plazo:(loanStats(L).plazoOrig||4);
+  $("#iMeses").value=plazo;
+  $("#iTransf").value=HOY; $("#iPrimera").value=addMonthsISO(HOY,1);
+  $("#iNota").value=""; $("#regenRow").hidden=true;
+  const cg=L.cuotas.find(c=>cargoDe(c)>0);
+  $("#iCargoOn").checked=!!cg; $("#iCargo").value=cg?cargoDe(cg):""; $("#iCargoDesc").value=(cg&&cg.cargoDesc)||CARGO_DEF; $("#cargoRow").hidden=!$("#iCargoOn").checked;
+  ui.primeraTocada=false; ui.renovarDe=id; updatePreview();
+}
 function openForm(id){
-  ui.editId=id||null; ui.primeraTocada=!!id; ui.regenTocado=false;
+  ui.editId=id||null; ui.primeraTocada=!!id; ui.regenTocado=false; ui.renovarDe=null;
   const L=id?state.loans.find(x=>x.id===id):null;
   $("#mTitle").textContent=L?"Editar préstamo":"Nuevo préstamo";
   $("#iPersona").value=L?L.persona:""; $("#iCedula").value=L?(L.cedula||""):"";
@@ -1402,8 +1416,8 @@ function saveForm(){
     if(ui.cuotaEdit&&ui.cuotaEdit.id===L.id) ui.cuotaEdit=null;
     toast("Préstamo actualizado");
   } else {
-    const L={id:"P"+Date.now().toString(36),persona:f.persona,cedula:f.cedula,capital:f.capital,tasa:f.tasa,plazo:f.plazo,transferencia:f.transferencia,nota:f.nota,origen:"Manual",cuotas:generarCuotas(f.capital,f.tasa,f.plazo,f.primera)}; setCargo1(L.cuotas,f);
-    state.loans.push(L); ui.open.add(L.id); toast("Préstamo agregado: "+shortName(L.persona)+" "+money(L.capital));
+    const L={id:"P"+Date.now().toString(36),persona:f.persona,cedula:f.cedula,capital:f.capital,tasa:f.tasa,plazo:f.plazo,transferencia:f.transferencia,nota:f.nota,origen:ui.renovarDe?"Renovación":"Manual",cuotas:generarCuotas(f.capital,f.tasa,f.plazo,f.primera)}; setCargo1(L.cuotas,f);
+    state.loans.push(L); ui.open.add(L.id); toast((ui.renovarDe?"Renovación agregada: ":"Préstamo agregado: ")+shortName(L.persona)+" "+money(L.capital));
   }
   save(); closeForm(); renderAll();
 }
@@ -1449,7 +1463,8 @@ function bind(){
   });
   $("#tblResumen").addEventListener("click",e=>{const tr=e.target.closest("tr[data-mes]");if(!tr)return;ui.mes=tr.dataset.mes;ui.estados.clear();renderFilterOptions();renderCuotas();showTab("cuotas");window.scrollTo({top:0,behavior:"smooth"});});
   $("#tblPrestamos").addEventListener("click",e=>{
-    const ed=e.target.closest("[data-edit]"), del=e.target.closest("[data-del]");
+    const ed=e.target.closest("[data-edit]"), del=e.target.closest("[data-del]"), ren=e.target.closest("[data-renovar]");
+    if(ren){openRenovar(ren.dataset.renovar);return;}
     if(ed){openForm(ed.dataset.edit);return;}
     const ce=e.target.closest("[data-cedit]"); if(ce){startCuotaEdit(ce.dataset.cedit);return;}
     const ca=e.target.closest("[data-ce-act]"), cd=e.target.closest("[data-ce-del]");
@@ -1527,7 +1542,7 @@ function bind(){
   if(sync.dirty&&!autoSave()) setStatus("local");
   syncFromRemote();
 })();
-window.__app={calcularPlan,situacion,aplicarLiquidacion,aplicarAbono,aplicarParcial,aplicarAbonoDesde,destinarParcial,maxParcial,pagarParcial,liquidarPrestamo,totalesCartera,ahorroAbono,pagarSoloInteres,pagarCompleto,deshacer,sync,push,pushNow,syncFromRemote,setAutoSave,autoSave,GH_OWNER,GH_REPO,SEED_VERSION,state:()=>state,ui,HOY,filteredRows,sumRows,monthlySummary,loanStats,generarCuotas,renderAll,buildCsv};
+window.__app={calcularPlan,situacion,aplicarLiquidacion,aplicarAbono,aplicarParcial,aplicarAbonoDesde,destinarParcial,maxParcial,pagarParcial,liquidarPrestamo,openRenovar,openForm,saveForm,closeForm,totalesCartera,ahorroAbono,pagarSoloInteres,pagarCompleto,deshacer,sync,push,pushNow,syncFromRemote,setAutoSave,autoSave,GH_OWNER,GH_REPO,SEED_VERSION,state:()=>state,ui,HOY,filteredRows,sumRows,monthlySummary,loanStats,generarCuotas,renderAll,buildCsv};
 </script>
 </body>
 </html>
